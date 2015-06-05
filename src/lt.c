@@ -25,11 +25,11 @@ THE SOFTWARE.
 
 LT_GarbageList *gbHead, *gbRover;
 
-static FILE *LT_ParseFile;
+static FILE *parseFile;
 static LT_InitInfo info;
 static iconv_t icDesc;
-static bool LT_AssertError = false;
-static const char *LT_AssertString;
+static bool assertError = false;
+static const char *assertString;
 
 static char *tokenTypes[] = {
 	// [marrub] So, this was an interesting bug. This was completely misordered from the enum.
@@ -111,8 +111,8 @@ bool LT_Assert(bool assertion, const char *str)
 {
 	if(assertion)
 	{
-		LT_AssertError = true;
-		LT_AssertString = str;
+		assertError = true;
+		assertString = str;
 		fprintf(stderr, "LT_Assert: %s", str);
 	}
 	
@@ -122,16 +122,16 @@ bool LT_Assert(bool assertion, const char *str)
 LT_AssertInfo LT_CheckAssert()
 {
 	LT_AssertInfo ltAssertion;
-	ltAssertion.failure = LT_AssertError;
-	ltAssertion.str = LT_AssertString;
+	ltAssertion.failure = assertError;
+	ltAssertion.str = assertString;
 	return ltAssertion;
 }
 
 bool LT_OpenFile(const char *filePath)
 {
-	LT_ParseFile = fopen(filePath, "r");
+	parseFile = fopen(filePath, "r");
 	
-	if(LT_ParseFile == NULL)
+	if(parseFile == NULL)
 	{
 		perror("LT_OpenFile");
 		return false;
@@ -142,9 +142,9 @@ bool LT_OpenFile(const char *filePath)
 
 void LT_CloseFile()
 {
-	if(LT_ParseFile != NULL)
+	if(parseFile != NULL)
 	{
-		fclose(LT_ParseFile);
+		fclose(parseFile);
 	}
 }
 
@@ -153,13 +153,13 @@ char *LT_ReadNumber()
 	size_t i = 0, str_blocks = 1;
 	char c, *str = malloc(TOKEN_STR_BLOCK_LENGTH);
 	
-	while(!feof(LT_ParseFile))
+	while(!feof(parseFile))
 	{
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
 		if(!isalnum(c))
 		{
-			fseek(LT_ParseFile, -1, SEEK_CUR);
+			fseek(parseFile, -1, SEEK_CUR);
 			break;
 		}
 		
@@ -199,23 +199,23 @@ char *LT_ReadString(char term)
 	
 	while(true)
 	{
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
 		if(c == term)
 		{
 			break;
 		}
 		
-		if(LT_Assert(feof(LT_ParseFile) || c == '\n', "unterminated string literal"))
+		if(LT_Assert(feof(parseFile) || c == '\n', "unterminated string literal"))
 		{
 			return emptyString;
 		}
 		
 		if(c == '\\' && info.escapeChars)
 		{
-			fread(&c, 1, 1, LT_ParseFile);
+			fread(&c, 1, 1, parseFile);
 			
-			if(LT_Assert(feof(LT_ParseFile) || c == '\n', "unterminated string literal"))
+			if(LT_Assert(feof(parseFile) || c == '\n', "unterminated string literal"))
 			{
 				str[i] = '\0';
 				return str;
@@ -276,7 +276,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 			for(unsigned int i = 0;;)
 			{
 				char c;
-				fread(&c, 1, 1, LT_ParseFile);
+				fread(&c, 1, 1, parseFile);
 				
 				switch(c)
 				{
@@ -298,7 +298,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 					case 'f': case 'F': i = i * 16 + 0xF; break;
 					
 					default:
-						fseek(LT_ParseFile, -1, SEEK_CUR);
+						fseek(parseFile, -1, SEEK_CUR);
 						str[pos] = i;
 						break;
 				}
@@ -325,12 +325,12 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 						case '6': i = i * 8 + 06; break;
 						case '7': i = i * 8 + 07; break;
 						default:
-							fseek(LT_ParseFile, -1, SEEK_CUR);
+							fseek(parseFile, -1, SEEK_CUR);
 							str[pos] = i;
 							return str;
 					}
 					
-					fread(&c, 1, 1, LT_ParseFile);
+					fread(&c, 1, 1, parseFile);
 				}
 				
 				str[pos] = i;
@@ -349,30 +349,30 @@ LT_Token LT_GetToken()
 	char c;
 	LT_Token tk = { 0 };
 	
-	fread(&c, 1, 1, LT_ParseFile);
+	fread(&c, 1, 1, parseFile);
 	
-	if(feof(LT_ParseFile))
+	if(feof(parseFile))
 	{
 		tk.token = tokenTypes[TOK_EOF];
 		tk.string = NULL;
-		tk.pos = ftell(LT_ParseFile);
+		tk.pos = ftell(parseFile);
 		return tk;
 	}
 	
 	while(isspace(c) && c != '\n')
 	{
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
-		if(feof(LT_ParseFile)) // [marrub] This could have caused issues if there was whitespace before EOF.
+		if(feof(parseFile)) // [marrub] This could have caused issues if there was whitespace before EOF.
 		{
 			tk.token = tokenTypes[TOK_EOF];
 			tk.string = NULL;
-			tk.pos = ftell(LT_ParseFile);
+			tk.pos = ftell(parseFile);
 			return tk;
 		}
 	}
 	
-	tk.pos = ftell(LT_ParseFile);
+	tk.pos = ftell(parseFile);
 	
 	switch(c)
 	{
@@ -394,7 +394,7 @@ LT_Token LT_GetToken()
 	//          but sometimes I really do care about my sanity. And wrists.
 #define DoubleTokDef(ch, t1, t2) \
 	case ch: \
-		fread(&c, 1, 1, LT_ParseFile); \
+		fread(&c, 1, 1, parseFile); \
 		\
 		if(c == ch) \
 		{ \
@@ -403,7 +403,7 @@ LT_Token LT_GetToken()
 		else \
 		{ \
 			tk.token = tokenTypes[t1]; \
-			fseek(LT_ParseFile, -1, SEEK_CUR); \
+			fseek(parseFile, -1, SEEK_CUR); \
 		} \
 		\
 		return tk;
@@ -419,7 +419,7 @@ LT_Token LT_GetToken()
 	
 	// [marrub] Special god damn snowflakes
 	case '>':
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
 		if(c == '=')
 		{
@@ -432,12 +432,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = tokenTypes[TOK_CmpGT];
-			fseek(LT_ParseFile, -1, SEEK_CUR);
+			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
 		return tk;
 	case '<':
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
 		if(c == '=')
 		{
@@ -454,12 +454,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = tokenTypes[TOK_CmpLT];
-			fseek(LT_ParseFile, -1, SEEK_CUR);
+			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
 		return tk;
 	case '!':
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
 		if(c == '=')
 		{
@@ -468,12 +468,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = tokenTypes[TOK_Not];
-			fseek(LT_ParseFile, -1, SEEK_CUR);
+			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
 		return tk;
 	case '~':
-		fread(&c, 1, 1, LT_ParseFile);
+		fread(&c, 1, 1, parseFile);
 		
 		if(c == '=')
 		{
@@ -481,7 +481,7 @@ LT_Token LT_GetToken()
 		}
 		else
 		{
-			fseek(LT_ParseFile, -1, SEEK_CUR);
+			fseek(parseFile, -1, SEEK_CUR);
 			LT_Assert(true, "syntax error"); // [marrub] Yet more error checking that was forgotten before.
 		}
 		
@@ -503,7 +503,7 @@ LT_Token LT_GetToken()
 	
 	if(isdigit(c))
 	{
-		fseek(LT_ParseFile, -1, SEEK_CUR);
+		fseek(parseFile, -1, SEEK_CUR);
 		
 		tk.string = LT_ReadNumber();
 		tk.token = tokenTypes[TOK_Number];
@@ -515,7 +515,7 @@ LT_Token LT_GetToken()
 		size_t i = 0, str_blocks = 1;
 		char *str = malloc(TOKEN_STR_BLOCK_LENGTH);
 		
-		while(!(feof(LT_ParseFile)) && (isalnum(c) || c == '_'))
+		while(!(feof(parseFile)) && (isalnum(c) || c == '_'))
 		{
 			if(i > TOKEN_STR_BLOCK_LENGTH)
 			{
@@ -529,7 +529,7 @@ LT_Token LT_GetToken()
 				str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
 			}
 			
-			fread(&c, 1, 1, LT_ParseFile);
+			fread(&c, 1, 1, parseFile);
 		}
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
@@ -544,7 +544,7 @@ LT_Token LT_GetToken()
 		gbRover->ptr = realloc(str, i);
 		gbRover->next = NULL;
 		
-		fseek(LT_ParseFile, -1, SEEK_CUR);
+		fseek(parseFile, -1, SEEK_CUR);
 		
 		tk.string = gbRover->ptr;
 		tk.token = tokenTypes[TOK_Identi];
