@@ -31,7 +31,7 @@ FILE *LT_ParseFile;
 bool LT_AssertError = false;
 LT_GarbageList *gbHead, *gbRover;
 
-static bool escapeChars = true;
+static LT_InitInfo info;
 
 static char *tokenTypes[] = {
 	// [marrub] So, this was an interesting bug. This was completely misordered from the enum.
@@ -47,7 +47,7 @@ static char *tokenTypes[] = {
 
 void LT_Init(LT_InitInfo initInfo)
 {
-	escapeChars = initInfo.escapeChars;
+	info = initInfo;
 	
 	gbHead = malloc(sizeof(LT_GarbageList));
 	gbHead->next = NULL;
@@ -131,7 +131,7 @@ char *LT_ReadNumber()
 			realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
 		}
 		
-		str[i++] = c;
+		str[i++] = ((info.stripInvalid && (isspace(c) || isprint(c))) || !info.stripInvalid) ? c : ' ';
 	}
 	
 	str[i++] = '\0';
@@ -164,7 +164,7 @@ char *LT_ReadString(char term)
 			return emptyString;
 		}
 		
-		if(c == '\\' && escapeChars)
+		if(c == '\\' && info.escapeChars)
 		{
 			fread(&c, 1, 1, LT_ParseFile);
 			
@@ -188,7 +188,7 @@ char *LT_ReadString(char term)
 				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
 			}
 			
-			str[i++] = c;
+			str[i++] = ((info.stripInvalid && (isspace(c) || isprint(c))) || !info.stripInvalid) ? c : ' ';
 		}
 	}
 	
@@ -465,7 +465,7 @@ LT_Token LT_GetToken()
 				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
 			}
 			
-			str[i++] = c;
+			str[i++] = ((info.stripInvalid && (isspace(c) || isprint(c))) || !info.stripInvalid) ? c : ' ';
 			fread(&c, 1, 1, LT_ParseFile);
 		}
 		

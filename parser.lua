@@ -31,6 +31,7 @@ ffi.cdef([[
 typedef struct
 {
 	bool escapeChars;
+	bool stripInvalid;
 } LT_InitInfo;
 
 typedef struct
