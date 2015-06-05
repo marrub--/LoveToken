@@ -32,6 +32,9 @@ typedef struct
 {
 	bool escapeChars;
 	bool stripInvalid;
+	bool doConvert;
+	const char *fromCode;
+	const char *toCode;
 } LT_InitInfo;
 
 typedef struct
@@ -41,11 +44,16 @@ typedef struct
 	int pos;
 } LT_Token;
 
-extern bool LT_AssertError;
+typedef struct
+{
+	bool failure;
+	const char *str;
+} LT_AssertInfo;
 
 void LT_Init(LT_InitInfo initInfo);
 void LT_Quit();
 bool LT_Assert(bool assertion, const char *str);
+LT_AssertInfo LT_CheckAssert();
 
 bool LT_OpenFile(const char *filePath);
 void LT_CloseFile();
@@ -56,6 +64,8 @@ char *LT_Escaper(char *str, size_t pos, char escape);
 LT_Token LT_GetToken();
 ]])
 
+local pReturn
+
 function parser:init(initInfo, filePath)
 	loveToken.LT_Init(initInfo)
 	loveToken.LT_OpenFile(filePath)
@@ -65,8 +75,20 @@ function parser:assert(assertion, str)
 	return loveToken.LT_Assert(assertion, str)
 end
 
+function parser:checkError()
+	ltAssertion = loveToken.LT_CheckAssert()
+	
+	if (ltAssertion.str == nil) then
+		assert(not ltAssertion.failure, "unknown assertion")
+	else
+		assert(not ltAssertion.failure, ffi.string(ltAssertion.str))
+	end
+end
+
 function parser:openFile(filePath)
-	return loveToken.LT_OpenFile(filePath)
+	pReturn = loveToken.LT_OpenFile(filePath)
+	parser:checkError()
+	return pReturn
 end
 
 function parser:closeFile()
@@ -79,19 +101,27 @@ function parser:quit()
 end
 
 function parser:readNumber()
-	return ffi.string(loveToken.LT_ReadNumber())
+	pReturn = loveToken.LT_ReadNumber()
+	parser:checkError()
+	return ffi.string(pReturn)
 end
 
 function parser:readString(term)
-	return ffi.string(loveToken.LT_ReadString(term))
+	pReturn = loveToken.LT_ReadString(term)
+	parser:checkError()
+	return ffi.string(pReturn)
 end
 
 function parser:escaper(str, pos, escape)
-	return ffi.string(loveToken.LT_Escaper(str, pos, escape))
+	pReturn = loveToken.LT_Escaper(str, pos, escape)
+	parser:checkError()
+	return ffi.string(pReturn)
 end
 
 function parser:getToken()
-	return loveToken.LT_GetToken()
+	pReturn = loveToken.LT_GetToken()
+	parser:checkError()
+	return pReturn
 end
 
 return parser
