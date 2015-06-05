@@ -23,6 +23,13 @@ THE SOFTWARE.
 
 #include "lt.h"
 
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <errno.h>
+#include <iconv.h>
+#include <stdlib.h>
+
 /*
  * Variables
  */

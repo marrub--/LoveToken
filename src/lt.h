@@ -28,12 +28,8 @@ THE SOFTWARE.
  * Includes
  */
 
-#include <stdio.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
-#include <errno.h>
 
 #include <iconv.h>
 
