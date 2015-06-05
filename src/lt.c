@@ -23,25 +23,32 @@ THE SOFTWARE.
 
 #include "lt.h"
 
-LT_GarbageList *gbHead, *gbRover;
+/*
+ * Variables
+ */
 
+static LT_GarbageList *gbHead, *gbRover;
 static FILE *parseFile;
 static LT_InitInfo info;
 static iconv_t icDesc;
 static bool assertError = false;
 static const char *assertString;
 
-static char *tokenTypes[] = {
+const char *LT_TkNames[] = {
 	// [marrub] So, this was an interesting bug. This was completely misordered from the enum.
 	//          As can be guessed, this caused many issues. Seriously, all of them.
-	"TOK_Colon", "TOK_Comma", "TOK_Div", "TOK_Mod", "TOK_Mul", "TOK_Query",
+	"TOK_Colon",  "TOK_Comma",  "TOK_Div",    "TOK_Mod",    "TOK_Mul",    "TOK_Query",
 	"TOK_BraceO", "TOK_BraceC", "TOK_BrackO", "TOK_BrackC", "TOK_ParenO", "TOK_ParenC",
-	"TOK_LnEnd", "TOK_Add2", "TOK_Add", "TOK_And2", "TOK_And", "TOK_CmpGE",
-	"TOK_ShR", "TOK_CmpGT", "TOK_CmpLE", "TOK_ShL", "TOK_CmpNE", "TOK_CmpLT",
-	"TOK_CmpEQ", "TOK_Equal", "TOK_Not", "TOK_OrI2", "TOK_OrI", "TOK_OrX2",
-	"TOK_OrX", "TOK_Sub2", "TOK_Sub", "TOK_String", "TOK_Charac", "TOK_Number",
-	"TOK_Identi", "TOK_EOF", "TOK_ChrSeq"
+	"TOK_LnEnd",  "TOK_Add2",   "TOK_Add",    "TOK_And2",   "TOK_And",    "TOK_CmpGE",
+	"TOK_ShR",    "TOK_CmpGT",  "TOK_CmpLE",  "TOK_ShL",    "TOK_CmpNE",  "TOK_CmpLT",
+	"TOK_CmpEQ",  "TOK_Equal",  "TOK_Not",    "TOK_OrI2",   "TOK_OrI",    "TOK_OrX2",
+	"TOK_OrX",    "TOK_Sub2",   "TOK_Sub",    "TOK_String", "TOK_Charac", "TOK_Number",
+	"TOK_Identi", "TOK_EOF",    "TOK_ChrSeq"
 };
+
+/*
+ * Functions
+ */
 
 static void LT_DoConvert(char **str)
 {
@@ -68,7 +75,7 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		if(icDesc == (iconv_t) -1)
 		{
-			LT_Assert(true, "failure opening iconv");
+			LT_Assert(true, "LT_Init: Failure opening iconv");
 		}
 	}
 	
@@ -113,7 +120,9 @@ bool LT_Assert(bool assertion, const char *str)
 	{
 		assertError = true;
 		assertString = str;
-		fprintf(stderr, "LT_Assert: %s", str);
+		
+		// [marrub] Apparently LOVE does not like printf
+		// fprintf(stderr, "LT_Assert: %s", str);
 	}
 	
 	return assertion;
@@ -133,7 +142,12 @@ bool LT_OpenFile(const char *filePath)
 	
 	if(parseFile == NULL)
 	{
-		perror("LT_OpenFile");
+		char *errorStr = malloc(256);
+		
+		snprintf(errorStr, 256, "LT_OpenFile: %s", strerror(errno));
+		LT_Assert(true, errorStr);
+		free(errorStr);
+		
 		return false;
 	}
 	
@@ -195,7 +209,6 @@ char *LT_ReadString(char term)
 {
 	size_t i = 0, str_blocks = 1;
 	char c, *str = malloc(TOKEN_STR_BLOCK_LENGTH);
-	static char *emptyString = "";
 	
 	while(true)
 	{
@@ -206,16 +219,16 @@ char *LT_ReadString(char term)
 			break;
 		}
 		
-		if(LT_Assert(feof(parseFile) || c == '\n', "unterminated string literal"))
+		if(LT_Assert(feof(parseFile) || c == '\n', "LT_ReadString: Unterminated string literal"))
 		{
-			return emptyString;
+			return "";
 		}
 		
 		if(c == '\\' && info.escapeChars)
 		{
 			fread(&c, 1, 1, parseFile);
 			
-			if(LT_Assert(feof(parseFile) || c == '\n', "unterminated string literal"))
+			if(LT_Assert(feof(parseFile) || c == '\n', "LT_ReadString: Unterminated string literal"))
 			{
 				str[i] = '\0';
 				return str;
@@ -338,7 +351,9 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 			}
 			
 			break;
-		default: LT_Assert(true, "unknown escape character"); break;
+		default:
+			LT_Assert(true, "LT_Escaper: Unknown escape character");
+			break;
 	}
 	
 	return str;
@@ -353,7 +368,7 @@ LT_Token LT_GetToken()
 	
 	if(feof(parseFile))
 	{
-		tk.token = tokenTypes[TOK_EOF];
+		tk.token = LT_TkNames[TOK_EOF];
 		tk.string = NULL;
 		tk.pos = ftell(parseFile);
 		return tk;
@@ -365,7 +380,7 @@ LT_Token LT_GetToken()
 		
 		if(feof(parseFile)) // [marrub] This could have caused issues if there was whitespace before EOF.
 		{
-			tk.token = tokenTypes[TOK_EOF];
+			tk.token = LT_TkNames[TOK_EOF];
 			tk.string = NULL;
 			tk.pos = ftell(parseFile);
 			return tk;
@@ -376,19 +391,19 @@ LT_Token LT_GetToken()
 	
 	switch(c)
 	{
-	case ':':  tk.token = tokenTypes[TOK_Colon];  return tk;
-	case ',':  tk.token = tokenTypes[TOK_Comma];  return tk;
-	case '/':  tk.token = tokenTypes[TOK_Div];    return tk;
-	case '%':  tk.token = tokenTypes[TOK_Mod];    return tk;
-	case '*':  tk.token = tokenTypes[TOK_Mul];    return tk;
-	case '?':  tk.token = tokenTypes[TOK_Query];  return tk;
-	case '{':  tk.token = tokenTypes[TOK_BraceO]; return tk;
-	case '}':  tk.token = tokenTypes[TOK_BraceC]; return tk;
-	case '[':  tk.token = tokenTypes[TOK_BrackO]; return tk;
-	case ']':  tk.token = tokenTypes[TOK_BrackC]; return tk;
-	case '(':  tk.token = tokenTypes[TOK_ParenO]; return tk;
-	case ')':  tk.token = tokenTypes[TOK_ParenC]; return tk;
-	case '\n': tk.token = tokenTypes[TOK_LnEnd];  return tk;
+	case ':':  tk.token = LT_TkNames[TOK_Colon];  return tk;
+	case ',':  tk.token = LT_TkNames[TOK_Comma];  return tk;
+	case '/':  tk.token = LT_TkNames[TOK_Div];    return tk;
+	case '%':  tk.token = LT_TkNames[TOK_Mod];    return tk;
+	case '*':  tk.token = LT_TkNames[TOK_Mul];    return tk;
+	case '?':  tk.token = LT_TkNames[TOK_Query];  return tk;
+	case '{':  tk.token = LT_TkNames[TOK_BraceO]; return tk;
+	case '}':  tk.token = LT_TkNames[TOK_BraceC]; return tk;
+	case '[':  tk.token = LT_TkNames[TOK_BrackO]; return tk;
+	case ']':  tk.token = LT_TkNames[TOK_BrackC]; return tk;
+	case '(':  tk.token = LT_TkNames[TOK_ParenO]; return tk;
+	case ')':  tk.token = LT_TkNames[TOK_ParenC]; return tk;
+	case '\n': tk.token = LT_TkNames[TOK_LnEnd];  return tk;
 	
 	// [marrub] Sorry, I wouldn't normally do a quick and dirty hack like this,
 	//          but sometimes I really do care about my sanity. And wrists.
@@ -398,11 +413,11 @@ LT_Token LT_GetToken()
 		\
 		if(c == ch) \
 		{ \
-			tk.token = tokenTypes[t2]; \
+			tk.token = LT_TkNames[t2]; \
 		} \
 		else \
 		{ \
-			tk.token = tokenTypes[t1]; \
+			tk.token = LT_TkNames[t1]; \
 			fseek(parseFile, -1, SEEK_CUR); \
 		} \
 		\
@@ -423,15 +438,15 @@ LT_Token LT_GetToken()
 		
 		if(c == '=')
 		{
-			tk.token = tokenTypes[TOK_CmpGE];
+			tk.token = LT_TkNames[TOK_CmpGE];
 		}
 		else if(c == '>')
 		{
-			tk.token = tokenTypes[TOK_ShR];
+			tk.token = LT_TkNames[TOK_ShR];
 		}
 		else
 		{
-			tk.token = tokenTypes[TOK_CmpGT];
+			tk.token = LT_TkNames[TOK_CmpGT];
 			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
@@ -441,19 +456,19 @@ LT_Token LT_GetToken()
 		
 		if(c == '=')
 		{
-			tk.token = tokenTypes[TOK_CmpLE];
+			tk.token = LT_TkNames[TOK_CmpLE];
 		}
 		else if(c == '<')
 		{
-			tk.token = tokenTypes[TOK_ShL];
+			tk.token = LT_TkNames[TOK_ShL];
 		}
 		else if(c == '>')
 		{
-			tk.token = tokenTypes[TOK_CmpNE];
+			tk.token = LT_TkNames[TOK_CmpNE];
 		}
 		else
 		{
-			tk.token = tokenTypes[TOK_CmpLT];
+			tk.token = LT_TkNames[TOK_CmpLT];
 			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
@@ -463,11 +478,11 @@ LT_Token LT_GetToken()
 		
 		if(c == '=')
 		{
-			tk.token = tokenTypes[TOK_CmpNE];
+			tk.token = LT_TkNames[TOK_CmpNE];
 		}
 		else
 		{
-			tk.token = tokenTypes[TOK_Not];
+			tk.token = LT_TkNames[TOK_Not];
 			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
@@ -477,12 +492,12 @@ LT_Token LT_GetToken()
 		
 		if(c == '=')
 		{
-			tk.token = tokenTypes[TOK_CmpNE];
+			tk.token = LT_TkNames[TOK_CmpNE];
 		}
 		else
 		{
 			fseek(parseFile, -1, SEEK_CUR);
-			LT_Assert(true, "syntax error"); // [marrub] Yet more error checking that was forgotten before.
+			LT_Assert(true, "LT_GetToken: Syntax error"); // [marrub] Yet more error checking that was forgotten before.
 		}
 		
 		return tk;
@@ -491,11 +506,11 @@ LT_Token LT_GetToken()
 		
 		if(c == '"')
 		{
-			tk.token = tokenTypes[TOK_String];
+			tk.token = LT_TkNames[TOK_String];
 		}
 		else
 		{
-			tk.token = tokenTypes[TOK_Charac];
+			tk.token = LT_TkNames[TOK_Charac];
 		}
 		
 		return tk;
@@ -506,7 +521,7 @@ LT_Token LT_GetToken()
 		fseek(parseFile, -1, SEEK_CUR);
 		
 		tk.string = LT_ReadNumber();
-		tk.token = tokenTypes[TOK_Number];
+		tk.token = LT_TkNames[TOK_Number];
 		return tk;
 	}
 	
@@ -547,7 +562,7 @@ LT_Token LT_GetToken()
 		fseek(parseFile, -1, SEEK_CUR);
 		
 		tk.string = gbRover->ptr;
-		tk.token = tokenTypes[TOK_Identi];
+		tk.token = LT_TkNames[TOK_Identi];
 		return tk;
 	}
 	
@@ -560,7 +575,7 @@ LT_Token LT_GetToken()
 	gbRover->ptr = tk.string;
 	gbRover->next = NULL;
 	
-	tk.token = tokenTypes[TOK_ChrSeq];
+	tk.token = LT_TkNames[TOK_ChrSeq];
 	
 	return tk;
 }
