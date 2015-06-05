@@ -34,7 +34,7 @@ static iconv_t icDesc;
 static bool assertError = false;
 static const char *assertString;
 
-const char *LT_TkNames[] = {
+char *LT_TkNames[] = {
 	// [marrub] So, this was an interesting bug. This was completely misordered from the enum.
 	//          As can be guessed, this caused many issues. Seriously, all of them.
 	"TOK_Colon",  "TOK_Comma",  "TOK_Div",    "TOK_Mod",    "TOK_Mul",    "TOK_Query",

@@ -115,7 +115,7 @@ LT_Token LT_EXPORT LT_GetToken();
  * Don't include these into FFI declarations.
  */
 
-extern const char *LT_EXPORT LT_TkNames[];
+extern char *LT_EXPORT LT_TkNames[];
 
 #endif
 
