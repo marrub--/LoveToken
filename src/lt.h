@@ -25,8 +25,12 @@ THE SOFTWARE.
 #define LOVETOKEN_LT_H
 
 #include <stdio.h>
-#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
+
+#include <iconv.h>
 
 #define TOKEN_STR_BLOCK_LENGTH 512
 
@@ -38,6 +42,9 @@ typedef struct
 {
 	bool escapeChars;
 	bool stripInvalid;
+	bool doConvert;
+	const char *fromCode;
+	const char *toCode;
 } LT_InitInfo;
 
 typedef struct
@@ -47,11 +54,16 @@ typedef struct
 	int pos;
 } LT_Token;
 
-extern bool LT_EXPORT LT_AssertError;
+typedef struct
+{
+	bool failure;
+	const char *str;
+} LT_AssertInfo;
 
 void LT_EXPORT LT_Init(LT_InitInfo initInfo);
 void LT_EXPORT LT_Quit();
 bool LT_EXPORT LT_Assert(bool assertion, const char *str);
+LT_AssertInfo LT_EXPORT LT_CheckAssert();
 
 bool LT_EXPORT LT_OpenFile(const char *filePath);
 void LT_EXPORT LT_CloseFile();
@@ -68,8 +80,6 @@ typedef struct LT_GarbageList_s
 	struct LT_GarbageList_s *next;
 	void *ptr;
 } LT_GarbageList;
-
-extern FILE *LT_ParseFile;
 
 enum
 {

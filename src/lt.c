@@ -21,17 +21,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include "lt.h"
 
-FILE *LT_ParseFile;
-bool LT_AssertError = false;
 LT_GarbageList *gbHead, *gbRover;
 
+static FILE *LT_ParseFile;
 static LT_InitInfo info;
+static iconv_t icDesc;
+static bool LT_AssertError = false;
+static const char *LT_AssertString;
 
 static char *tokenTypes[] = {
 	// [marrub] So, this was an interesting bug. This was completely misordered from the enum.
@@ -45,9 +43,34 @@ static char *tokenTypes[] = {
 	"TOK_Identi", "TOK_EOF", "TOK_ChrSeq"
 };
 
+static void LT_DoConvert(char **str)
+{
+	size_t i = strlen(*str);
+	char *strbuf = calloc((i * 6) + 1, 1);
+	char *strbufOrig = strbuf, *strOrig = *str;
+	size_t in = i, out = i * 6;
+	
+	iconv(icDesc, str, &in, &strbuf, &out);
+	
+	*str = strOrig, strbuf = strbufOrig;
+	
+	free(*str);
+	*str = strbuf;
+}
+
 void LT_Init(LT_InitInfo initInfo)
 {
 	info = initInfo;
+	
+	if(info.doConvert)
+	{
+		icDesc = iconv_open(info.toCode, info.fromCode);
+		
+		if(icDesc == (iconv_t) -1)
+		{
+			LT_Assert(true, "failure opening iconv");
+		}
+	}
 	
 	gbHead = malloc(sizeof(LT_GarbageList));
 	gbHead->next = NULL;
@@ -58,6 +81,11 @@ void LT_Init(LT_InitInfo initInfo)
 
 void LT_Quit()
 {
+	if(info.doConvert)
+	{
+		iconv_close(icDesc);
+	}
+	
 	gbRover = gbHead;
 	
 	while(gbRover != NULL)
@@ -84,10 +112,19 @@ bool LT_Assert(bool assertion, const char *str)
 	if(assertion)
 	{
 		LT_AssertError = true;
+		LT_AssertString = str;
 		fprintf(stderr, "LT_Assert: %s", str);
 	}
 	
 	return assertion;
+}
+
+LT_AssertInfo LT_CheckAssert()
+{
+	LT_AssertInfo ltAssertion;
+	ltAssertion.failure = LT_AssertError;
+	ltAssertion.str = LT_AssertString;
+	return ltAssertion;
 }
 
 bool LT_OpenFile(const char *filePath)
@@ -131,10 +168,20 @@ char *LT_ReadNumber()
 			realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
 		}
 		
-		str[i++] = ((info.stripInvalid && (isspace(c) || isprint(c))) || !info.stripInvalid) ? c : ' ';
+		str[i++] = c;
+		
+		if(info.stripInvalid)
+		{
+			str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
+		}
 	}
 	
 	str[i++] = '\0';
+	
+	if(info.doConvert)
+	{
+		LT_DoConvert(&str);
+	}
 	
 	gbRover->next = malloc(sizeof(LT_GarbageList));
 	gbRover = gbRover->next;
@@ -188,11 +235,21 @@ char *LT_ReadString(char term)
 				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
 			}
 			
-			str[i++] = ((info.stripInvalid && (isspace(c) || isprint(c))) || !info.stripInvalid) ? c : ' ';
+			str[i++] = c;
+			
+			if(info.stripInvalid)
+			{
+				str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
+			}
 		}
 	}
 	
 	str[i++] = '\0';
+	
+	if(info.doConvert)
+	{
+		LT_DoConvert(&str);
+	}
 	
 	gbRover->next = malloc(sizeof(LT_GarbageList));
 	gbRover = gbRover->next;
@@ -465,11 +522,22 @@ LT_Token LT_GetToken()
 				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
 			}
 			
-			str[i++] = ((info.stripInvalid && (isspace(c) || isprint(c))) || !info.stripInvalid) ? c : ' ';
+			str[i++] = c;
+			
+			if(info.stripInvalid)
+			{
+				str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
+			}
+			
 			fread(&c, 1, 1, LT_ParseFile);
 		}
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
+		
+		if(info.doConvert)
+		{
+			LT_DoConvert(&str);
+		}
 		
 		gbRover->next = malloc(sizeof(LT_GarbageList));
 		gbRover = gbRover->next;
@@ -482,6 +550,17 @@ LT_Token LT_GetToken()
 		tk.token = tokenTypes[TOK_Identi];
 		return tk;
 	}
+	
+	tk.string = malloc(2);
+	tk.string[0] = c;
+	tk.string[1] = '\0';
+	
+	gbRover->next = malloc(sizeof(LT_GarbageList));
+	gbRover = gbRover->next;
+	gbRover->ptr = tk.string;
+	gbRover->next = NULL;
+	
+	tk.token = tokenTypes[TOK_ChrSeq];
 	
 	return tk;
 }
