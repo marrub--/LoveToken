@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Benjamin Moir
+Copyright (c) 2015 Benjamin Moir <bennyboy.private@hotmail.com.au>
 Copyright (c) 2015 Marrub <marrub@greyserv.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
