@@ -81,14 +81,33 @@ void LT_Init(LT_InitInfo initInfo)
 {
 	info = initInfo;
 	
-	if(info.doConvert)
+	if(info.doConvert && info.fromCode != NULL && info.toCode != NULL)
 	{
+		if(strcmp(info.fromCode, "UTF8"))
+		{
+			info.fromCode = "UTF-8";
+		}
+		
+		if(strcmp(info.toCode, "UTF8"))
+		{
+			info.toCode = "UTF-8";
+		}
+		
 		icDesc = iconv_open(info.toCode, info.fromCode);
 		
 		if(icDesc == (iconv_t) -1)
 		{
 			LT_Assert(true, "LT_Init: Failure opening iconv");
 		}
+	}
+	else
+	{
+		info.doConvert = false;
+	}
+	
+	if(info.stripInvalid && info.doConvert)
+	{
+		info.stripInvalid = false;
 	}
 	
 	gbHead = malloc(sizeof(LT_GarbageList));
