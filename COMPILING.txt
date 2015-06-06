@@ -1,0 +1,2 @@
+Compiling LoveToken is near trivial since it only needs iconv and C99.
+Build an object file from lt.c and link it with iconv into a dll/so/etc.
