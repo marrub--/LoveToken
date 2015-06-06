@@ -40,8 +40,15 @@ THE SOFTWARE.
 #define TOKEN_STR_BLOCK_LENGTH 512
 
 // [marrub] When using in FFI, remove this from the declarations.
-//          Also make sure to redefine this for cross-platform.
-#define LT_EXPORT __declspec(dllexport)
+//          Also make sure to redefine this if your platform is not supported.
+//          (OSX shouldn't need this at all)
+#if defined(_MSC_VER)
+	#define LT_EXPORT __declspec(dllexport)
+#elseif defined(_GCC)
+	#define LT_EXPORT __attribute__((visibility("default")))
+#else
+	#define LT_EXPORT
+#endif
 
 enum
 {
