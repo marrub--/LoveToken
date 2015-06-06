@@ -40,6 +40,7 @@ static LT_InitInfo info;
 static iconv_t icDesc;
 static bool assertError = false;
 static const char *assertString;
+static char *stringChars = "\"", *charChars = "'";
 
 static const char *errors[] = {
 	"LT_Error: Syntax error",
@@ -104,6 +105,62 @@ void LT_Init(LT_InitInfo initInfo)
 	if(info.stripInvalid && info.doConvert)
 	{
 		info.stripInvalid = false;
+	}
+	
+	if(info.stringChars != NULL)
+	{
+		int i;
+		
+		stringChars = malloc(6);
+		
+		for(i = 0; i < 6; i++)
+		{
+			char c = info.stringChars[i];
+			
+			if(c != '\0')
+			{
+				stringChars[i] = c;
+			}
+			else
+			{
+				break;
+			}
+		}
+		
+		stringChars[i] = '\0';
+		
+		gbRover->next = malloc(sizeof(LT_GarbageList));
+		gbRover = gbRover->next;
+		gbRover->ptr = stringChars;
+		gbRover->next = NULL;
+	}
+	
+	if(info.charChars != NULL)
+	{
+		int i;
+		
+		charChars = malloc(6);
+		
+		for(i = 0; i < 6; i++)
+		{
+			char c = info.charChars[i];
+			
+			if(c != '\0')
+			{
+				charChars[i] = c;
+			}
+			else
+			{
+				break;
+			}
+		}
+		
+		charChars[i] = '\0';
+		
+		gbRover->next = malloc(sizeof(LT_GarbageList));
+		gbRover = gbRover->next;
+		gbRover->ptr = charChars;
+		gbRover->next = NULL;
 	}
 }
 
@@ -528,18 +585,38 @@ LT_Token LT_GetToken()
 		}
 		
 		return tk;
-	case '"': case '\'':
-		tk.string = LT_ReadString(c);
+	}
+	
+	for(size_t i = 0; i < 6;)
+	{
+		char cc = stringChars[i++];
 		
-		if(c == '"')
+		if(cc == '\0')
 		{
+			break;
+		}
+		else if(c == cc)
+		{
+			tk.string = LT_ReadString(c);
 			tk.token = LT_TkNames[TOK_String];
+			return tk;
 		}
-		else
+	}
+	
+	for(size_t i = 0; i < 6;)
+	{
+		char cc = charChars[i++];
+		
+		if(cc == '\0')
 		{
-			tk.token = LT_TkNames[TOK_Charac];
+			break;
 		}
-		return tk;
+		else if(c == cc)
+		{
+			tk.string = LT_ReadString(c);
+			tk.token = LT_TkNames[TOK_Charac];
+			return tk;
+		}
 	}
 	
 	if(isdigit(c))
