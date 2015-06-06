@@ -72,6 +72,8 @@ typedef struct
 	bool doConvert;
 	const char *fromCode;
 	const char *toCode;
+	const char *stringChars;
+	const char *charChars; // [marrub] heh
 } LT_InitInfo;
 
 typedef struct
