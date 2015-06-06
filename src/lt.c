@@ -322,7 +322,15 @@ char *LT_ReadString(char term)
 		
 		if(LT_Assert(c == EOF || c == '\n', "LT_ReadString: Unterminated string literal"))
 		{
-			return "";
+			char *emptyString = LT_Alloc(1);
+			emptyString[0] = '\0';
+			
+			gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
+			gbRover = gbRover->next;
+			gbRover->ptr = emptyString;
+			gbRover->next = NULL;
+			
+			return emptyString;
 		}
 		
 		if(c == '\\' && info.escapeChars)
