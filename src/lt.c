@@ -80,9 +80,23 @@ static void LT_DoConvert(char **str)
 	*str = strbuf;
 }
 
+static void *LT_Alloc(size_t size)
+{
+	void *p = malloc(size);
+	LT_Assert(p == NULL, "LT_Alloc: Out of memory");
+	return p;
+}
+
+static void *LT_ReAlloc(void *ptr, size_t newSize)
+{
+	void *p = realloc(ptr, newSize);
+	LT_Assert(p == NULL, "LT_ReAlloc: Out of memory");
+	return p;
+}
+
 void LT_Init(LT_InitInfo initInfo)
 {
-	gbHead = malloc(sizeof(LT_GarbageList));
+	gbHead = LT_Alloc(sizeof(LT_GarbageList));
 	gbHead->next = NULL;
 	gbHead->ptr = NULL;
 	
@@ -113,11 +127,11 @@ void LT_Init(LT_InitInfo initInfo)
 	{
 		int i;
 		
-		stringChars = malloc(6);
+		stringChars = LT_Alloc(6);
 		
 		for(i = 0; i < 6; i++)
 		{
-			char c = info.stringChars[i];
+			int c = info.stringChars[i];
 			
 			if(c != '\0')
 			{
@@ -131,7 +145,7 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		stringChars[i] = '\0';
 		
-		gbRover->next = malloc(sizeof(LT_GarbageList));
+		gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 		gbRover = gbRover->next;
 		gbRover->ptr = stringChars;
 		gbRover->next = NULL;
@@ -141,11 +155,11 @@ void LT_Init(LT_InitInfo initInfo)
 	{
 		int i;
 		
-		charChars = malloc(6);
+		charChars = LT_Alloc(6);
 		
 		for(i = 0; i < 6; i++)
 		{
-			char c = info.charChars[i];
+			int c = info.charChars[i];
 			
 			if(c != '\0')
 			{
@@ -159,7 +173,7 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		charChars[i] = '\0';
 		
-		gbRover->next = malloc(sizeof(LT_GarbageList));
+		gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 		gbRover = gbRover->next;
 		gbRover->ptr = charChars;
 		gbRover->next = NULL;
@@ -228,11 +242,10 @@ bool LT_OpenFile(const char *filePath)
 	
 	if(parseFile == NULL)
 	{
-		char *errorStr = malloc(256);
+		char *errorStr = LT_Alloc(256);
 		
 		snprintf(errorStr, 256, "LT_OpenFile: %s", strerror(errno));
 		LT_Assert(true, errorStr);
-		free(errorStr);
 		
 		return false;
 	}
@@ -250,22 +263,23 @@ void LT_CloseFile()
 
 char *LT_ReadNumber()
 {
-	size_t i = 0, str_blocks = 1;
-	char c, *str = malloc(TOKEN_STR_BLOCK_LENGTH);
+	size_t i = 0, strBlocks = 1;
+	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
+	int c = '\0';
 	
-	while(!feof(parseFile))
+	while(c != EOF)
 	{
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(!isalnum(c))
 		{
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 			break;
 		}
 		
-		if(i > TOKEN_STR_BLOCK_LENGTH)
+		if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 		{
-			realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
+			str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 		}
 		
 		str[i++] = c;
@@ -283,9 +297,9 @@ char *LT_ReadNumber()
 		LT_DoConvert(&str);
 	}
 	
-	gbRover->next = malloc(sizeof(LT_GarbageList));
+	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 	gbRover = gbRover->next;
-	gbRover->ptr = realloc(str, i);
+	gbRover->ptr = LT_ReAlloc(str, i);
 	gbRover->next = NULL;
 	
 	return gbRover->ptr;
@@ -293,45 +307,46 @@ char *LT_ReadNumber()
 
 char *LT_ReadString(char term)
 {
-	size_t i = 0, str_blocks = 1;
-	char c, *str = malloc(TOKEN_STR_BLOCK_LENGTH);
+	size_t i = 0, strBlocks = 1;
+	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
+	int c;
 	
 	while(true)
 	{
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == term)
 		{
 			break;
 		}
 		
-		if(LT_Assert(feof(parseFile) || c == '\n', "LT_ReadString: Unterminated string literal"))
+		if(LT_Assert(c == EOF || c == '\n', "LT_ReadString: Unterminated string literal"))
 		{
 			return "";
 		}
 		
 		if(c == '\\' && info.escapeChars)
 		{
-			fread(&c, 1, 1, parseFile);
+			c = fgetc(parseFile);
 			
-			if(LT_Assert(feof(parseFile) || c == '\n', "LT_ReadString: Unterminated string literal"))
+			if(LT_Assert(c == EOF || c == '\n', "LT_ReadString: Unterminated string literal"))
 			{
 				str[i] = '\0';
 				return str;
 			}
 			
-			if(i > TOKEN_STR_BLOCK_LENGTH)
+			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 			{
-				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
+				str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 			}
 			
 			str = LT_Escaper(str, i++, c);
 		}
 		else
 		{
-			if(i > TOKEN_STR_BLOCK_LENGTH)
+			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 			{
-				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
+				str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 			}
 			
 			str[i++] = c;
@@ -350,9 +365,9 @@ char *LT_ReadString(char term)
 		LT_DoConvert(&str);
 	}
 	
-	gbRover->next = malloc(sizeof(LT_GarbageList));
+	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 	gbRover = gbRover->next;
-	gbRover->ptr = realloc(str, i);
+	gbRover->ptr = LT_ReAlloc(str, i);
 	gbRover->next = NULL;
 	
 	return gbRover->ptr;
@@ -363,7 +378,6 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 	switch(escape)
 	{
 		case '\\': case '\'': case '"':  str[pos] = escape; break;
-		case 'C': str[pos] = '\x1C'; break;
 		case 'a': str[pos] = '\a'; break;
 		case 'b': str[pos] = '\b'; break;
 		case 'f': str[pos] = '\f'; break;
@@ -374,8 +388,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 		case 'x': // [marrub] THIS ONE IS FUN
 			for(unsigned int i = 0;;)
 			{
-				char c;
-				fread(&c, 1, 1, parseFile);
+				int c = fgetc(parseFile);
 				
 				switch(c)
 				{
@@ -397,7 +410,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 					case 'f': case 'F': i = i * 16 + 0xF; break;
 					
 					default:
-						fseek(parseFile, -1, SEEK_CUR);
+						ungetc(c, parseFile);
 						str[pos] = i;
 						break;
 				}
@@ -408,7 +421,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 		case '0': case '1': case '2': case '3':
 		case '4': case '5': case '6': case '7':
 			{
-				char c = escape;
+				int c = escape;
 				unsigned int i = 0;
 				
 				for(unsigned int n = 2; n != 0; n--)
@@ -424,12 +437,12 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 						case '6': i = i * 8 + 06; break;
 						case '7': i = i * 8 + 07; break;
 						default:
-							fseek(parseFile, -1, SEEK_CUR);
+							ungetc(c, parseFile);
 							str[pos] = i;
 							return str;
 					}
 					
-					fread(&c, 1, 1, parseFile);
+					c = fgetc(parseFile);
 				}
 				
 				str[pos] = i;
@@ -447,12 +460,10 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 
 LT_Token LT_GetToken()
 {
-	char c;
 	LT_Token tk = { 0 };
+	int c = fgetc(parseFile);
 	
-	fread(&c, 1, 1, parseFile);
-	
-	if(feof(parseFile))
+	if(c == EOF)
 	{
 		tk.token = LT_TkNames[TOK_EOF];
 		tk.string = NULL;
@@ -462,9 +473,9 @@ LT_Token LT_GetToken()
 	
 	while(isspace(c) && c != '\n')
 	{
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
-		if(feof(parseFile)) // [marrub] This could have caused issues if there was whitespace before EOF.
+		if(c == EOF) // [marrub] This could have caused issues if there was whitespace before EOF.
 		{
 			tk.token = LT_TkNames[TOK_EOF];
 			tk.string = NULL;
@@ -496,7 +507,7 @@ LT_Token LT_GetToken()
 	//          but sometimes I really do care about my sanity. And wrists.
 #define DoubleTokDef(ch, t1, t2) \
 	case ch: \
-		fread(&c, 1, 1, parseFile); \
+		c = fgetc(parseFile); \
 		\
 		if(c == ch) \
 		{ \
@@ -505,7 +516,7 @@ LT_Token LT_GetToken()
 		else \
 		{ \
 			tk.token = LT_TkNames[t1]; \
-			fseek(parseFile, -1, SEEK_CUR); \
+			ungetc(c, parseFile); \
 		} \
 		\
 		return tk;
@@ -519,7 +530,7 @@ LT_Token LT_GetToken()
 	
 	// [marrub] Special god damn snowflakes
 	case '>':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '=')
 		{
@@ -532,12 +543,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_CmpGT];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
 	case '<':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '=')
 		{
@@ -554,12 +565,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_CmpLT];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
 	case '!':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '=')
 		{
@@ -568,12 +579,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Not];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
 	case '~':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '=')
 		{
@@ -581,14 +592,14 @@ LT_Token LT_GetToken()
 		}
 		else
 		{
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 			LT_Assert(true, "LT_GetToken: Syntax error"); // [marrub] Yet more error checking that was forgotten before.
 		}
 		
 		return tk;
 	// [zombie] extra tokens
 	case '/':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '/')
 		{
@@ -605,12 +616,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Div];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
 	case '*':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '/')
 		{
@@ -623,12 +634,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Mul];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
 	case '-':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if(c == '-')
 		{
@@ -641,12 +652,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Sub];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
 	case '+':
-		fread(&c, 1, 1, parseFile);
+		c = fgetc(parseFile);
 		
 		if (c == '/')
 		{
@@ -659,7 +670,7 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Add];
-			fseek(parseFile, -1, SEEK_CUR);
+			ungetc(c, parseFile);
 		}
 		
 		return tk;
@@ -699,7 +710,7 @@ LT_Token LT_GetToken()
 	
 	if(isdigit(c))
 	{
-		fseek(parseFile, -1, SEEK_CUR);
+		ungetc(c, parseFile);
 		
 		tk.string = LT_ReadNumber();
 		tk.token = LT_TkNames[TOK_Number];
@@ -708,14 +719,14 @@ LT_Token LT_GetToken()
 	
 	if(isalpha(c) || c == '_')
 	{
-		size_t i = 0, str_blocks = 1;
-		char *str = malloc(TOKEN_STR_BLOCK_LENGTH);
+		size_t i = 0, strBlocks = 1;
+		char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
 		
-		while(!(feof(parseFile)) && (isalnum(c) || c == '_'))
+		while(c != EOF && (isalnum(c) || c == '_'))
 		{
-			if(i > TOKEN_STR_BLOCK_LENGTH)
+			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 			{
-				realloc(str, TOKEN_STR_BLOCK_LENGTH * str_blocks++);
+				str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 			}
 			
 			str[i++] = c;
@@ -725,7 +736,7 @@ LT_Token LT_GetToken()
 				str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
 			}
 			
-			fread(&c, 1, 1, parseFile);
+			c = fgetc(parseFile);
 		}
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
@@ -735,23 +746,23 @@ LT_Token LT_GetToken()
 			LT_DoConvert(&str);
 		}
 		
-		gbRover->next = malloc(sizeof(LT_GarbageList));
+		gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 		gbRover = gbRover->next;
-		gbRover->ptr = realloc(str, i);
+		gbRover->ptr = LT_ReAlloc(str, i);
 		gbRover->next = NULL;
 		
-		fseek(parseFile, -1, SEEK_CUR);
+		ungetc(c, parseFile);
 		
 		tk.string = gbRover->ptr;
 		tk.token = LT_TkNames[TOK_Identi];
 		return tk;
 	}
 	
-	tk.string = malloc(2);
+	tk.string = LT_Alloc(2);
 	tk.string[0] = c;
 	tk.string[1] = '\0';
 	
-	gbRover->next = malloc(sizeof(LT_GarbageList));
+	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 	gbRover = gbRover->next;
 	gbRover->ptr = tk.string;
 	gbRover->next = NULL;
