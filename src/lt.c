@@ -53,6 +53,11 @@ char *LT_TkNames[] = {
 	"TOK_Identi", "TOK_EOF",    "TOK_ChrSeq"
 };
 
+static const char *errors[] = {
+	"LT_Error: Syntax error",
+	"LT_Error: Unknown operation"
+};
+
 /*
  * Functions
  */
@@ -133,6 +138,12 @@ bool LT_Assert(bool assertion, const char *str)
 	}
 	
 	return assertion;
+}
+
+void LT_Error(int type)
+{
+	fprintf(stderr, "%s", errors[type]);
+	exit(1);
 }
 
 LT_AssertInfo LT_CheckAssert()

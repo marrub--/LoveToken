@@ -31,8 +31,6 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include <iconv.h>
-
 /*
  * Definitions
  */
@@ -55,6 +53,12 @@ enum
 	TOK_Equal,  TOK_Not,    TOK_OrI2,   TOK_OrI,    TOK_OrX2,
 	TOK_OrX,    TOK_Sub2,   TOK_Sub,    TOK_String, TOK_Charac,
 	TOK_Number, TOK_Identi, TOK_EOF,    TOK_ChrSeq
+};
+
+enum
+{
+	LTERR_SYNTAX,
+	LTERR_UNKNOWN_OPERATION
 };
 
 /*
@@ -97,6 +101,7 @@ void LT_EXPORT LT_Init(LT_InitInfo initInfo);
 void LT_EXPORT LT_Quit();
 bool LT_EXPORT LT_Assert(bool assertion, const char *str);
 LT_AssertInfo LT_EXPORT LT_CheckAssert();
+void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
 
 bool LT_EXPORT LT_OpenFile(const char *filePath);
 void LT_EXPORT LT_CloseFile();
