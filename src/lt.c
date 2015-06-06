@@ -56,7 +56,9 @@ char *LT_TkNames[] = {
 	"TOK_ShR",    "TOK_CmpGT",  "TOK_CmpLE",  "TOK_ShL",    "TOK_CmpNE",  "TOK_CmpLT",
 	"TOK_CmpEQ",  "TOK_Equal",  "TOK_Not",    "TOK_OrI2",   "TOK_OrI",    "TOK_OrX2",
 	"TOK_OrX",    "TOK_Sub2",   "TOK_Sub",    "TOK_String", "TOK_Charac", "TOK_Number",
-	"TOK_Identi", "TOK_EOF",    "TOK_ChrSeq"
+	"TOK_Identi", "TOK_EOF",    "TOK_ChrSeq", "TOK_Comment","TOK_Period", "TOK_Arrow",
+	"TOK_Sigil",  "TOK_Hash",   "TOK_BlkCmtO","TOK_BlkCmtC","TOK_Exp",    "TOK_NstCmtO",
+	"TOK_NstCmtC"
 };
 
 /*
@@ -475,11 +477,12 @@ LT_Token LT_GetToken()
 	
 	switch(c)
 	{
+	case '$':  tk.token = LT_TkNames[TOK_Sigil];  return tk;
+	case '#':  tk.token = LT_TkNames[TOK_Hash];   return tk;
+	case '.':  tk.token = LT_TkNames[TOK_Period]; return tk;
 	case ':':  tk.token = LT_TkNames[TOK_Colon];  return tk;
 	case ',':  tk.token = LT_TkNames[TOK_Comma];  return tk;
-	case '/':  tk.token = LT_TkNames[TOK_Div];    return tk;
 	case '%':  tk.token = LT_TkNames[TOK_Mod];    return tk;
-	case '*':  tk.token = LT_TkNames[TOK_Mul];    return tk;
 	case '?':  tk.token = LT_TkNames[TOK_Query];  return tk;
 	case '{':  tk.token = LT_TkNames[TOK_BraceO]; return tk;
 	case '}':  tk.token = LT_TkNames[TOK_BraceC]; return tk;
@@ -507,8 +510,6 @@ LT_Token LT_GetToken()
 		\
 		return tk;
 	
-	DoubleTokDef('+', TOK_Add, TOK_Add2);
-	DoubleTokDef('-', TOK_Sub, TOK_Sub2);
 	DoubleTokDef('&', TOK_And, TOK_And2);
 	DoubleTokDef('=', TOK_Equal, TOK_CmpEQ);
 	DoubleTokDef('^', TOK_OrX, TOK_OrX2);
@@ -582,6 +583,83 @@ LT_Token LT_GetToken()
 		{
 			fseek(parseFile, -1, SEEK_CUR);
 			LT_Assert(true, "LT_GetToken: Syntax error"); // [marrub] Yet more error checking that was forgotten before.
+		}
+		
+		return tk;
+	// [zombie] extra tokens
+	case '/':
+		fread(&c, 1, 1, parseFile);
+		
+		if(c == '/')
+		{
+			tk.token = LT_TkNames[TOK_Comment];
+		}
+		else if(c == '*')
+		{
+			tk.token = LT_TkNames[TOK_BlkCmtO];
+		}
+		else if(c == '+')
+		{
+			tk.token = LT_TkNames[TOK_NstCmtO];
+		}
+		else
+		{
+			tk.token = LT_TkNames[TOK_Div];
+			fseek(parseFile, -1, SEEK_CUR);
+		}
+		
+		return tk;
+	case '*':
+		fread(&c, 1, 1, parseFile);
+		
+		if(c == '/')
+		{
+			tk.token = LT_TkNames[TOK_BlkCmtC];
+		}
+		else if(c == '*')
+		{
+			tk.token = LT_TkNames[TOK_Exp];
+		}
+		else
+		{
+			tk.token = LT_TkNames[TOK_Mul];
+			fseek(parseFile, -1, SEEK_CUR);
+		}
+		
+		return tk;
+	case '-':
+		fread(&c, 1, 1, parseFile);
+		
+		if(c == '-')
+		{
+			tk.token = LT_TkNames[TOK_Sub2];
+		}
+		else if (c == '>')
+		{
+			tk.token = LT_TkNames[TOK_Arrow];
+		}
+		else
+		{
+			tk.token = LT_TkNames[TOK_Sub];
+			fseek(parseFile, -1, SEEK_CUR);
+		}
+		
+		return tk;
+	case '+':
+		fread(&c, 1, 1, parseFile);
+		
+		if (c == '/')
+		{
+			tk.token = LT_TkNames[TOK_NstCmtC];
+		}
+		else if (c == '+')
+		{
+			tk.token = LT_TkNames[TOK_Add2];
+		}
+		else
+		{
+			tk.token = LT_TkNames[TOK_Add];
+			fseek(parseFile, -1, SEEK_CUR);
 		}
 		
 		return tk;

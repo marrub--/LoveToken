@@ -52,7 +52,9 @@ enum
 	TOK_CmpLE,  TOK_ShL,    TOK_CmpNE,  TOK_CmpLT,  TOK_CmpEQ,
 	TOK_Equal,  TOK_Not,    TOK_OrI2,   TOK_OrI,    TOK_OrX2,
 	TOK_OrX,    TOK_Sub2,   TOK_Sub,    TOK_String, TOK_Charac,
-	TOK_Number, TOK_Identi, TOK_EOF,    TOK_ChrSeq
+	TOK_Number, TOK_Identi, TOK_EOF,    TOK_ChrSeq, TOK_Comment,
+	TOK_Period, TOK_Arrow,  TOK_Sigil,  TOK_Hash,   TOK_BlkCmtO,
+	TOK_BlkCmtC,TOK_Exp,    TOK_NstCmtO,TOK_NstCmtC
 };
 
 enum
