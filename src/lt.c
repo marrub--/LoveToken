@@ -40,7 +40,6 @@ static LT_InitInfo info;
 static iconv_t icDesc;
 static bool assertError = false;
 static const char *assertString;
-static char *stringChars, *charChars;
 
 static const char *errors[] = {
 	"LT_Error: Syntax error",
@@ -80,6 +79,12 @@ static void LT_DoConvert(char **str)
 
 void LT_Init(LT_InitInfo initInfo)
 {
+	gbHead = malloc(sizeof(LT_GarbageList));
+	gbHead->next = NULL;
+	gbHead->ptr = NULL;
+	
+	gbRover = gbHead;
+	
 	info = initInfo;
 	
 	if(info.doConvert && info.fromCode != NULL && info.toCode != NULL)
@@ -100,68 +105,6 @@ void LT_Init(LT_InitInfo initInfo)
 	{
 		info.stripInvalid = false;
 	}
-	
-	if(info.stringChars != NULL)
-	{
-		int i;
-		
-		stringChars = malloc(6);
-		
-		for(i = 0; i < 6; i++)
-		{
-			char c = info.stringChars[i];
-			
-			if(c != '\0')
-			{
-				stringChars[i] = c;
-			}
-			else
-			{
-				break;
-			}
-		}
-		
-		stringChars[i] = '\0';
-		info.stringChars = NULL; // [marrub] don't use this after init
-	}
-	else
-	{
-		stringChars = "\"";
-	}
-	
-	if(info.charChars != NULL)
-	{
-		int i;
-		
-		charChars = malloc(6);
-		
-		for(i = 0; i < 6; i++)
-		{
-			char c = info.charChars[i];
-			
-			if(c != '\0')
-			{
-				charChars[i] = c;
-			}
-			else
-			{
-				break;
-			}
-		}
-		
-		charChars[i] = '\0';
-		info.charChars = NULL; // [marrub] don't use this after init
-	}
-	else
-	{
-		charChars = "'";
-	}
-	
-	gbHead = malloc(sizeof(LT_GarbageList));
-	gbHead->next = NULL;
-	gbHead->ptr = NULL;
-	
-	gbRover = gbHead;
 }
 
 void LT_Quit()
@@ -170,8 +113,6 @@ void LT_Quit()
 	{
 		iconv_close(icDesc);
 	}
-	
-	free(stringChars);
 	
 	gbRover = gbHead;
 	
@@ -587,38 +528,18 @@ LT_Token LT_GetToken()
 		}
 		
 		return tk;
-	}
-	
-	for(size_t i = 0; i < 6;)
-	{
-		char cc = stringChars[i++];
+	case '"': case '\'':
+		tk.string = LT_ReadString(c);
 		
-		if(cc == '\0')
+		if(c == '"')
 		{
-			break;
-		}
-		else if(c == cc)
-		{
-			tk.string = LT_ReadString(c);
 			tk.token = LT_TkNames[TOK_String];
-			return tk;
 		}
-	}
-	
-	for(size_t i = 0; i < 6;)
-	{
-		char cc = charChars[i++];
-		
-		if(cc == '\0')
+		else
 		{
-			break;
-		}
-		else if(c == cc)
-		{
-			tk.string = LT_ReadString(c);
 			tk.token = LT_TkNames[TOK_Charac];
-			return tk;
 		}
+		return tk;
 	}
 	
 	if(isdigit(c))
