@@ -688,35 +688,42 @@ LT_Token LT_GetToken()
 		return tk;
 	}
 	
-	for(size_t i = 0; i < 6;)
+	
+	if(stringChars[0] != '\0')
 	{
-		char cc = stringChars[i++];
-		
-		if(cc == '\0')
+		for(size_t i = 0; i < 6;)
 		{
-			break;
-		}
-		else if(c == cc)
-		{
-			tk.string = LT_ReadString(c);
-			tk.token = LT_TkNames[TOK_String];
-			return tk;
+			char cc = stringChars[i++];
+			
+			if(cc == '\0')
+			{
+				break;
+			}
+			else if(c == cc)
+			{
+				tk.token = LT_TkNames[TOK_String];
+				tk.string = LT_ReadString(c);
+				return tk;
+			}
 		}
 	}
 	
-	for(size_t i = 0; i < 6;)
+	if(charChars[0] != '\0')
 	{
-		char cc = charChars[i++];
-		
-		if(cc == '\0')
+		for(size_t i = 0; i < 6;)
 		{
-			break;
-		}
-		else if(c == cc)
-		{
-			tk.string = LT_ReadString(c);
-			tk.token = LT_TkNames[TOK_Charac];
-			return tk;
+			char cc = charChars[i++];
+			
+			if(cc == '\0')
+			{
+				break;
+			}
+			else if(c == cc)
+			{
+				tk.token = LT_TkNames[TOK_Charac];
+				tk.string = LT_ReadString(c);
+				return tk;
+			}
 		}
 	}
 	
@@ -724,8 +731,8 @@ LT_Token LT_GetToken()
 	{
 		ungetc(c, parseFile);
 		
-		tk.string = LT_ReadNumber();
 		tk.token = LT_TkNames[TOK_Number];
+		tk.string = LT_ReadNumber();
 		return tk;
 	}
 	
@@ -743,11 +750,6 @@ LT_Token LT_GetToken()
 			
 			str[i++] = c;
 			
-			if(info.stripInvalid)
-			{
-				str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
-			}
-			
 			c = fgetc(parseFile);
 		}
 		
@@ -760,18 +762,17 @@ LT_Token LT_GetToken()
 		
 		ungetc(c, parseFile);
 		
-		tk.string = LT_SetGarbage(LT_ReAlloc(str, i));
 		tk.token = LT_TkNames[TOK_Identi];
+		tk.string = LT_SetGarbage(LT_ReAlloc(str, i));
 		return tk;
 	}
 	
+	tk.token = LT_TkNames[TOK_ChrSeq];
 	tk.string = LT_Alloc(2);
 	tk.string[0] = c;
 	tk.string[1] = '\0';
 	
 	LT_SetGarbage(tk.string);
-	
-	tk.token = LT_TkNames[TOK_ChrSeq];
 	
 	return tk;
 }

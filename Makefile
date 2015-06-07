@@ -5,7 +5,7 @@ PLFLAGS=
 LIBNAME=
 OUTDIR=bin
 LFLAGS=-shared -g -ggdb
-CFLAGS=--std=c99 -g -ggdb -Wall
+CFLAGS=--std=c99 -g -ggdb -O2 -Wall
 
 ifeq ($(OS),Windows_NT)
 	CC+=mingw32-gcc
