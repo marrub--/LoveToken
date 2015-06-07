@@ -36,4 +36,4 @@ clean:
 	$(RM) $(LIBNAME) $(OUTDIR)/lt.o $(RMEXTRA)
 
 example:
-	$(CC) $(CFLAGS) -Isrc -L$(OUTDIR) -o $(OUTDIR)/example examples/main.c -lLoveToken
+	$(CC) $(CFLAGS) -I$(SRCDIR) -L$(OUTDIR) -o $(OUTDIR)/example examples/main.c -lLoveToken
