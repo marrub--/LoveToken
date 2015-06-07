@@ -136,4 +136,9 @@ function tokenizer:getToken()
 	return lt
 end
 
+function tokenizer:setPos(newPos)
+	loveToken.LT_SetPos(newPos)
+	tokenizer:checkError()
+end
+
 return tokenizer
