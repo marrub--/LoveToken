@@ -113,7 +113,7 @@ void LT_EXPORT LT_Init(LT_Config initCfg);
 void LT_EXPORT LT_SetConfig(LT_Config newCfg);
 void LT_EXPORT LT_Quit();
 
-bool LT_EXPORT LT_Assert(bool assertion, const char *str);
+bool LT_EXPORT LT_Assert(bool assertion, const char *fmt, ...);
 void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
 LT_AssertInfo LT_EXPORT LT_CheckAssert();
 

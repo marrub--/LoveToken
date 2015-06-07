@@ -56,7 +56,7 @@ void LT_Init(LT_Config initCfg);
 void LT_SetConfig(LT_Config newCfg);
 void LT_Quit();
 
-bool LT_Assert(bool assertion, const char *str);
+bool LT_Assert(bool assertion, const char *str, ...);
 LT_AssertInfo LT_CheckAssert();
 
 bool LT_OpenFile(const char *filePath);

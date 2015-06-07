@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <errno.h>
 #include <iconv.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 /*
  * Variables
@@ -308,14 +309,24 @@ void LT_Quit()
 	gbHead = NULL;
 }
 
-bool LT_Assert(bool assertion, const char *str)
+bool LT_Assert(bool assertion, const char *fmt, ...)
 {
 	if(assertion)
 	{
+		char ftString[16];
+		char asBuffer[512];
+		
+		va_list va;
 		assertError = true;
 		assertString = malloc(512);
 		
-		snprintf(assertString, 512, ":%ld:%s", ftell(parseFile), str);
+		snprintf(ftString, 16, ":%ld:", ftell(parseFile));
+		
+		va_start(va, fmt);
+		vsnprintf(asBuffer, 512, fmt, va);
+		va_end(va);
+		
+		snprintf(assertString, 512, "%s%s", ftString, asBuffer);
 		
 		LT_SetGarbage(LT_ReAlloc(assertString, strlen(assertString) + 1));
 	}
@@ -343,11 +354,7 @@ bool LT_OpenFile(const char *filePath)
 	
 	if(parseFile == NULL)
 	{
-		char *errorStr = LT_Alloc(256);
-		
-		snprintf(errorStr, 256, "LT_OpenFile: %s", strerror(errno));
-		LT_Assert(true, errorStr);
-		
+		LT_Assert(true, "LT_OpenFile: %s", strerror(errno));
 		return false;
 	}
 	
@@ -358,7 +365,7 @@ void LT_SetPos(int newPos)
 {
 	if(fseek(parseFile, newPos, SEEK_SET) != 0)
 	{
-		LT_Assert(ferror(parseFile), "LT_SetPos: Failed to set position");
+		LT_Assert(ferror(parseFile), "LT_SetPos: %s", strerror(errno));
 	}
 }
 
@@ -553,7 +560,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 			
 			break;
 		default:
-			LT_Assert(true, "LT_Escaper: Unknown escape character");
+			LT_Assert(true, "LT_Escaper: Unknown escape character '%c'", escape);
 			break;
 	}
 	
