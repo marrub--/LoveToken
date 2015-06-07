@@ -36,7 +36,7 @@ THE SOFTWARE.
 
 static LT_GarbageList *gbHead, *gbRover;
 static FILE *parseFile;
-static LT_InitInfo info;
+static LT_Config cfg;
 static iconv_t icDesc;
 static bool assertError = false;
 static char *assertString;
@@ -115,7 +115,7 @@ static void *LT_SetGarbage(void *p)
 	return gbRover->ptr;
 }
 
-void LT_Init(LT_InitInfo initInfo)
+void LT_Init(LT_Config initCfg)
 {
 	gbHead = LT_Alloc(sizeof(LT_GarbageList));
 	gbHead->next = NULL;
@@ -123,11 +123,11 @@ void LT_Init(LT_InitInfo initInfo)
 	
 	gbRover = gbHead;
 	
-	info = initInfo;
+	cfg = initCfg;
 	
-	if(info.doConvert && info.fromCode != NULL && info.toCode != NULL)
+	if(cfg.doConvert && cfg.fromCode != NULL && cfg.toCode != NULL)
 	{
-		icDesc = iconv_open(info.toCode, info.fromCode);
+		icDesc = iconv_open(cfg.toCode, cfg.fromCode);
 		
 		if(icDesc == (iconv_t) -1)
 		{
@@ -136,15 +136,15 @@ void LT_Init(LT_InitInfo initInfo)
 	}
 	else
 	{
-		info.doConvert = false;
+		cfg.doConvert = false;
 	}
 	
-	if(info.stripInvalid && info.doConvert)
+	if(cfg.stripInvalid && cfg.doConvert)
 	{
-		info.stripInvalid = false;
+		cfg.stripInvalid = false;
 	}
 	
-	if(info.stringChars != NULL)
+	if(cfg.stringChars != NULL)
 	{
 		int i;
 		
@@ -152,7 +152,7 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		for(i = 0; i < 6; i++)
 		{
-			int c = info.stringChars[i];
+			int c = cfg.stringChars[i];
 			
 			if(c != '\0')
 			{
@@ -169,7 +169,7 @@ void LT_Init(LT_InitInfo initInfo)
 		LT_SetGarbage(stringChars);
 	}
 	
-	if(info.charChars != NULL)
+	if(cfg.charChars != NULL)
 	{
 		int i;
 		
@@ -177,7 +177,92 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		for(i = 0; i < 6; i++)
 		{
-			int c = info.charChars[i];
+			int c = cfg.charChars[i];
+			
+			if(c != '\0')
+			{
+				charChars[i] = c;
+			}
+			else
+			{
+				break;
+			}
+		}
+		
+		charChars[i] = '\0';
+		
+		LT_SetGarbage(charChars);
+	}
+}
+
+void LT_SetConfig(LT_Config newCfg)
+{
+	cfg = newCfg;
+	
+	if(cfg.doConvert && cfg.fromCode != NULL && cfg.toCode != NULL)
+	{
+		if(icDesc != NULL)
+		{
+			iconv_close(icDesc);
+		}
+		
+		icDesc = iconv_open(cfg.toCode, cfg.fromCode);
+		
+		if(icDesc == (iconv_t) -1)
+		{
+			LT_Assert(true, "LT_Init: Failure opening iconv");
+		}
+	}
+	else
+	{
+		if(icDesc != NULL)
+		{
+			iconv_close(icDesc);
+			icDesc = NULL;
+		}
+		
+		cfg.doConvert = false;
+	}
+	
+	if(cfg.stripInvalid && cfg.doConvert)
+	{
+		cfg.stripInvalid = false;
+	}
+	
+	if(cfg.stringChars != NULL)
+	{
+		int i;
+		
+		stringChars = LT_Alloc(6);
+		
+		for(i = 0; i < 6; i++)
+		{
+			int c = cfg.stringChars[i];
+			
+			if(c != '\0')
+			{
+				stringChars[i] = c;
+			}
+			else
+			{
+				break;
+			}
+		}
+		
+		stringChars[i] = '\0';
+		
+		LT_SetGarbage(stringChars);
+	}
+	
+	if(cfg.charChars != NULL)
+	{
+		int i;
+		
+		charChars = LT_Alloc(6);
+		
+		for(i = 0; i < 6; i++)
+		{
+			int c = cfg.charChars[i];
 			
 			if(c != '\0')
 			{
@@ -197,7 +282,7 @@ void LT_Init(LT_InitInfo initInfo)
 
 void LT_Quit()
 {
-	if(info.doConvert)
+	if(cfg.doConvert)
 	{
 		iconv_close(icDesc);
 	}
@@ -269,6 +354,14 @@ bool LT_OpenFile(const char *filePath)
 	return true;
 }
 
+void LT_SetPos(int newPos)
+{
+	if(fseek(parseFile, newPos, SEEK_SET) != 0)
+	{
+		LT_Assert(ferror(parseFile), "LT_SetPos: Failed to set position");
+	}
+}
+
 void LT_CloseFile()
 {
 	if(parseFile != NULL)
@@ -300,7 +393,7 @@ char *LT_ReadNumber()
 		
 		str[i++] = c;
 		
-		if(info.stripInvalid)
+		if(cfg.stripInvalid)
 		{
 			str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
 		}
@@ -308,7 +401,7 @@ char *LT_ReadNumber()
 	
 	str[i++] = '\0';
 	
-	if(info.doConvert)
+	if(cfg.doConvert)
 	{
 		LT_DoConvert(&str);
 	}
@@ -339,7 +432,7 @@ char *LT_ReadString(char term)
 			return LT_SetGarbage(emptyString);
 		}
 		
-		if(c == '\\' && info.escapeChars)
+		if(c == '\\' && cfg.escapeChars)
 		{
 			c = fgetc(parseFile);
 			
@@ -365,7 +458,7 @@ char *LT_ReadString(char term)
 			
 			str[i++] = c;
 			
-			if(info.stripInvalid)
+			if(cfg.stripInvalid)
 			{
 				str[i++] = (isspace(c) || isprint(c)) ? c : ' ';
 			}
@@ -374,7 +467,7 @@ char *LT_ReadString(char term)
 	
 	str[i++] = '\0';
 	
-	if(info.doConvert)
+	if(cfg.doConvert)
 	{
 		LT_DoConvert(&str);
 	}
@@ -755,7 +848,7 @@ LT_Token LT_GetToken()
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
 		
-		if(info.doConvert)
+		if(cfg.doConvert)
 		{
 			LT_DoConvert(&str);
 		}

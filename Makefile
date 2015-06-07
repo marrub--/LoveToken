@@ -17,7 +17,7 @@ else
 		CC+=gcc
 		MKDIR+=mkdir -p
 		PCFLAGS+=-fPIC
-		LIBNAME+=$(OUTDIR)/lovetoken.so
+		LIBNAME+=$(OUTDIR)/LoveToken.so
 	endif
 endif
 

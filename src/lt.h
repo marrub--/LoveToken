@@ -37,7 +37,7 @@ THE SOFTWARE.
 
 // [marrub] This can be changed if you have either a lot of very
 //          long strings, or a lot of very small strings, for optimization.
-#define TOKEN_STR_BLOCK_LENGTH 512
+#define TOKEN_STR_BLOCK_LENGTH 128
 
 // [marrub] When using in FFI, remove this from the declarations.
 //          Also make sure to redefine this if your platform is not supported.
@@ -84,7 +84,7 @@ typedef struct
 	const char *toCode;
 	const char *stringChars;
 	const char *charChars;
-} LT_InitInfo;
+} LT_Config;
 
 typedef struct
 {
@@ -109,13 +109,16 @@ typedef struct LT_GarbageList_s
  * Functions
  */
 
-void LT_EXPORT LT_Init(LT_InitInfo initInfo);
+void LT_EXPORT LT_Init(LT_Config initCfg);
+void LT_EXPORT LT_SetConfig(LT_Config newCfg);
 void LT_EXPORT LT_Quit();
+
 bool LT_EXPORT LT_Assert(bool assertion, const char *str);
-LT_AssertInfo LT_EXPORT LT_CheckAssert();
 void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
+LT_AssertInfo LT_EXPORT LT_CheckAssert();
 
 bool LT_EXPORT LT_OpenFile(const char *filePath);
+void LT_EXPORT LT_SetPos(int newPos);
 void LT_EXPORT LT_CloseFile();
 
 char *LT_EXPORT LT_ReadNumber();
