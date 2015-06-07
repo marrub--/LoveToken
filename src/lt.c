@@ -52,15 +52,15 @@ static const char *errors[] = {
 char *LT_TkNames[] = {
 	// [marrub] So, this was an interesting bug. This was completely misordered from the enum.
 	//          As can be guessed, this caused many issues. Seriously, all of them.
-	"TOK_Colon",  "TOK_Comma",  "TOK_Div",    "TOK_Mod",    "TOK_Mul",    "TOK_Query",
-	"TOK_BraceO", "TOK_BraceC", "TOK_BrackO", "TOK_BrackC", "TOK_ParenO", "TOK_ParenC",
-	"TOK_LnEnd",  "TOK_Add2",   "TOK_Add",    "TOK_And2",   "TOK_And",    "TOK_CmpGE",
-	"TOK_ShR",    "TOK_CmpGT",  "TOK_CmpLE",  "TOK_ShL",    "TOK_CmpNE",  "TOK_CmpLT",
-	"TOK_CmpEQ",  "TOK_Equal",  "TOK_Not",    "TOK_OrI2",   "TOK_OrI",    "TOK_OrX2",
-	"TOK_OrX",    "TOK_Sub2",   "TOK_Sub",    "TOK_String", "TOK_Charac", "TOK_Number",
-	"TOK_Identi", "TOK_EOF",    "TOK_ChrSeq", "TOK_Comment","TOK_Period", "TOK_Arrow",
-	"TOK_Sigil",  "TOK_Hash",   "TOK_BlkCmtO","TOK_BlkCmtC","TOK_Exp",    "TOK_NstCmtO",
-	"TOK_NstCmtC"
+	"TOK_Colon",   "TOK_Comma", "TOK_Div",    "TOK_Mod",    "TOK_Mul",    "TOK_Query",
+	"TOK_BraceO",  "TOK_BraceC","TOK_BrackO", "TOK_BrackC", "TOK_ParenO", "TOK_ParenC",
+	"TOK_LnEnd",   "TOK_Add2",  "TOK_Add",    "TOK_And2",   "TOK_And",    "TOK_CmpGE",
+	"TOK_ShR",     "TOK_CmpGT", "TOK_CmpLE",  "TOK_ShL",    "TOK_CmpNE",  "TOK_CmpLT",
+	"TOK_CmpEQ",   "TOK_Equal", "TOK_Not",    "TOK_OrI2",   "TOK_OrI",    "TOK_OrX2",
+	"TOK_OrX",     "TOK_Sub2",  "TOK_Sub",    "TOK_String", "TOK_Charac", "TOK_Number",
+	"TOK_Identi",  "TOK_EOF",   "TOK_ChrSeq", "TOK_Comment","TOK_Period", "TOK_Arrow",
+	"TOK_Sigil",   "TOK_Hash",  "TOK_BlkCmtO","TOK_BlkCmtC","TOK_Exp",    "TOK_NstCmtO",
+	"TOK_NstCmtC", "TOK_Semicl"
 };
 
 /*
@@ -599,6 +599,7 @@ LT_Token LT_GetToken()
 	case '#':  tk.token = LT_TkNames[TOK_Hash];   return tk;
 	case '.':  tk.token = LT_TkNames[TOK_Period]; return tk;
 	case ':':  tk.token = LT_TkNames[TOK_Colon];  return tk;
+	case ';':  tk.token = LT_TkNames[TOK_Semicl]; return tk;
 	case ',':  tk.token = LT_TkNames[TOK_Comma];  return tk;
 	case '%':  tk.token = LT_TkNames[TOK_Mod];    return tk;
 	case '?':  tk.token = LT_TkNames[TOK_Query];  return tk;
