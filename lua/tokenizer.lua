@@ -37,7 +37,7 @@ typedef struct
 	const char *toCode;
 	const char *stringChars;
 	const char *charChars;
-} LT_InitInfo;
+} LT_Config;
 
 typedef struct
 {
@@ -52,12 +52,15 @@ typedef struct
 	const char *str;
 } LT_AssertInfo;
 
-void LT_Init(LT_InitInfo initInfo);
+void LT_Init(LT_Config initCfg);
+void LT_SetConfig(LT_Config newCfg);
 void LT_Quit();
+
 bool LT_Assert(bool assertion, const char *str);
 LT_AssertInfo LT_CheckAssert();
 
 bool LT_OpenFile(const char *filePath);
+void LT_SetPos(int newPos);
 void LT_CloseFile();
 
 char *LT_ReadNumber();
