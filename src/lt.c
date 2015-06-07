@@ -39,12 +39,13 @@ static FILE *parseFile;
 static LT_InitInfo info;
 static iconv_t icDesc;
 static bool assertError = false;
-static const char *assertString;
+static char *assertString;
 static char *stringChars = "\"", *charChars = "'";
 
 static const char *errors[] = {
 	"LT_Error: Syntax error",
-	"LT_Error: Unknown operation"
+	"LT_Error: Unknown operation",
+	"LT_Error: Out of memory"
 };
 
 char *LT_TkNames[] = {
@@ -83,15 +84,35 @@ static void LT_DoConvert(char **str)
 static void *LT_Alloc(size_t size)
 {
 	void *p = malloc(size);
-	LT_Assert(p == NULL, "LT_Alloc: Out of memory");
+	
+	if(p == NULL)
+	{ // [marrub] if we don't error it will try to allocate an assertion, thus breaking horribly
+		LT_Error(LTERR_NOMEMORY);
+	}
+	
 	return p;
 }
 
 static void *LT_ReAlloc(void *ptr, size_t newSize)
 {
 	void *p = realloc(ptr, newSize);
-	LT_Assert(p == NULL, "LT_ReAlloc: Out of memory");
+	
+	if(p == NULL)
+	{
+		LT_Error(LTERR_NOMEMORY);
+	}
+	
 	return p;
+}
+
+static void *LT_SetGarbage(void *p)
+{
+	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
+	gbRover = gbRover->next;
+	gbRover->ptr = p;
+	gbRover->next = NULL;
+	
+	return gbRover->ptr;
 }
 
 void LT_Init(LT_InitInfo initInfo)
@@ -145,10 +166,7 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		stringChars[i] = '\0';
 		
-		gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-		gbRover = gbRover->next;
-		gbRover->ptr = stringChars;
-		gbRover->next = NULL;
+		LT_SetGarbage(stringChars);
 	}
 	
 	if(info.charChars != NULL)
@@ -173,10 +191,7 @@ void LT_Init(LT_InitInfo initInfo)
 		
 		charChars[i] = '\0';
 		
-		gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-		gbRover = gbRover->next;
-		gbRover->ptr = charChars;
-		gbRover->next = NULL;
+		LT_SetGarbage(charChars);
 	}
 }
 
@@ -213,10 +228,11 @@ bool LT_Assert(bool assertion, const char *str)
 	if(assertion)
 	{
 		assertError = true;
-		assertString = str;
+		assertString = malloc(512);
 		
-		// [marrub] Apparently LOVE does not like printf
-		// fprintf(stderr, "LT_Assert: %s", str);
+		snprintf(assertString, 512, ":%ld:%s", ftell(parseFile), str);
+		
+		LT_SetGarbage(LT_ReAlloc(assertString, strlen(assertString) + 1));
 	}
 	
 	return assertion;
@@ -297,12 +313,7 @@ char *LT_ReadNumber()
 		LT_DoConvert(&str);
 	}
 	
-	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-	gbRover = gbRover->next;
-	gbRover->ptr = LT_ReAlloc(str, i);
-	gbRover->next = NULL;
-	
-	return gbRover->ptr;
+	return LT_SetGarbage(LT_ReAlloc(str, i));
 }
 
 char *LT_ReadString(char term)
@@ -325,12 +336,7 @@ char *LT_ReadString(char term)
 			char *emptyString = LT_Alloc(1);
 			emptyString[0] = '\0';
 			
-			gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-			gbRover = gbRover->next;
-			gbRover->ptr = emptyString;
-			gbRover->next = NULL;
-			
-			return emptyString;
+			return LT_SetGarbage(emptyString);
 		}
 		
 		if(c == '\\' && info.escapeChars)
@@ -373,12 +379,7 @@ char *LT_ReadString(char term)
 		LT_DoConvert(&str);
 	}
 	
-	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-	gbRover = gbRover->next;
-	gbRover->ptr = LT_ReAlloc(str, i);
-	gbRover->next = NULL;
-	
-	return gbRover->ptr;
+	return LT_SetGarbage(LT_ReAlloc(str, i));
 }
 
 char *LT_Escaper(char *str, size_t pos, char escape)
@@ -474,7 +475,6 @@ LT_Token LT_GetToken()
 	if(c == EOF)
 	{
 		tk.token = LT_TkNames[TOK_EOF];
-		tk.string = NULL;
 		tk.pos = ftell(parseFile);
 		return tk;
 	}
@@ -486,7 +486,6 @@ LT_Token LT_GetToken()
 		if(c == EOF) // [marrub] This could have caused issues if there was whitespace before EOF.
 		{
 			tk.token = LT_TkNames[TOK_EOF];
-			tk.string = NULL;
 			tk.pos = ftell(parseFile);
 			return tk;
 		}
@@ -601,7 +600,12 @@ LT_Token LT_GetToken()
 		else
 		{
 			ungetc(c, parseFile);
-			LT_Assert(true, "LT_GetToken: Syntax error"); // [marrub] Yet more error checking that was forgotten before.
+			tk.token = LT_TkNames[TOK_ChrSeq];
+			tk.string = LT_Alloc(2);
+			tk.string[0] = c;
+			tk.string[1] = '\0';
+			
+			LT_SetGarbage(tk.string);
 		}
 		
 		return tk;
@@ -754,14 +758,9 @@ LT_Token LT_GetToken()
 			LT_DoConvert(&str);
 		}
 		
-		gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-		gbRover = gbRover->next;
-		gbRover->ptr = LT_ReAlloc(str, i);
-		gbRover->next = NULL;
-		
 		ungetc(c, parseFile);
 		
-		tk.string = gbRover->ptr;
+		tk.string = LT_SetGarbage(LT_ReAlloc(str, i));
 		tk.token = LT_TkNames[TOK_Identi];
 		return tk;
 	}
@@ -770,10 +769,7 @@ LT_Token LT_GetToken()
 	tk.string[0] = c;
 	tk.string[1] = '\0';
 	
-	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
-	gbRover = gbRover->next;
-	gbRover->ptr = tk.string;
-	gbRover->next = NULL;
+	LT_SetGarbage(tk.string);
 	
 	tk.token = LT_TkNames[TOK_ChrSeq];
 	
