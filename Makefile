@@ -3,6 +3,7 @@ MKDIR=
 PCFLAGS=
 PLFLAGS=
 LIBNAME=
+OUTDIR=bin
 LFLAGS=-shared -g -ggdb
 CFLAGS=--std=c99 -g -ggdb -Wall
 
@@ -10,17 +11,17 @@ ifeq ($(OS),Windows_NT)
 	CC+=mingw32-gcc
 	MKDIR+=mkdir -p
 	PLFLAGS+=-Wl,--out-implib,bin/libLoveToken.a
-	LIBNAME+=bin/LoveToken.dll
+	LIBNAME+=$(OUTDIR)/LoveToken.dll
 else
 	ifeq ($(shell uname -s), Linux)
 		CC+=gcc
 		MKDIR+=mkdir -p
 		PCFLAGS+=-fPIC
-		LIBNAME+=bin/lovetoken.so
+		LIBNAME+=$(OUTDIR)/lovetoken.so
 	endif
 endif
 
 all:
-	$(MKDIR) bin
-	$(CC) $(CFLAGS) $(PCFLAGS) -c -o bin/lt.o src/lt.c
-	$(CC) $(LFLAGS) -o $(LIBNAME) bin/lt.o $(PLFLAGS) -liconv
+	$(MKDIR) $(OUTDIR)
+	$(CC) $(CFLAGS) $(PCFLAGS) -c -o $(OUTDIR)/lt.o src/lt.c
+	$(CC) $(LFLAGS) -o $(LIBNAME) $(OUTDIR)/lt.o $(PLFLAGS) -liconv
