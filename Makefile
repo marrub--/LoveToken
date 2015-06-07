@@ -5,10 +5,10 @@ PCFLAGS=
 PLFLAGS=
 LIBNAME=
 OUTDIR=bin
+SRCDIR=src
 LFLAGS=-shared -g -ggdb
 CFLAGS=--std=c99 -g -ggdb -O2 -Wall
 RMEXTRA=
-EXAMPLEBIN=
 
 ifeq ($(OS),Windows_NT)
 	CC+=mingw32-gcc
@@ -29,11 +29,11 @@ endif
 
 all:
 	$(MKDIR) $(OUTDIR)
-	$(CC) $(CFLAGS) $(PCFLAGS) -c -o $(OUTDIR)/lt.o src/lt.c
+	$(CC) $(CFLAGS) $(PCFLAGS) -c -o $(OUTDIR)/lt.o $(SRCDIR)/lt.c
 	$(CC) $(LFLAGS) -o $(LIBNAME) $(OUTDIR)/lt.o $(PLFLAGS) -liconv
 
 clean:
-	$(RM) $(LIBNAME) bin/lt.o $(RMEXTRA)
+	$(RM) $(LIBNAME) $(OUTDIR)/lt.o $(RMEXTRA)
 
 example:
-	$(CC) $(CFLAGS) -Isrc -Lbin -o bin/example examples/main.c -lLoveToken
+	$(CC) $(CFLAGS) -Isrc -L$(OUTDIR) -o $(OUTDIR)/example examples/main.c -lLoveToken
