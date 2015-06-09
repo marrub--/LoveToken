@@ -125,6 +125,7 @@ char *LT_EXPORT LT_ReadNumber();
 char *LT_EXPORT LT_ReadString(char term);
 char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
 LT_Token LT_EXPORT LT_GetToken();
+void LT_EXPORT LT_SkipWhite();
 
 /*
  * Variables

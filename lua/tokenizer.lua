@@ -67,6 +67,7 @@ char *LT_ReadNumber();
 char *LT_ReadString(char term);
 char *LT_Escaper(char *str, size_t pos, char escape);
 LT_Token LT_GetToken();
+void LT_SkipWhite();
 ]])
 
 local pReturn
@@ -139,6 +140,10 @@ end
 function tokenizer:setPos(newPos)
 	loveToken.LT_SetPos(newPos)
 	tokenizer:checkError()
+end
+
+function tokenizer:skipWhite()
+	loveToken.LT_SkipWhite()
 end
 
 return tokenizer

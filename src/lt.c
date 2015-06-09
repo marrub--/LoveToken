@@ -878,3 +878,14 @@ LT_Token LT_GetToken()
 	return tk;
 }
 
+void LT_SkipWhite()
+{
+	char c = fgetc(parseFile);
+	
+	while(isspace(c) && c != EOF)
+	{
+		c = fgetc(parseFile);
+	}
+	
+	ungetc(c, parseFile);
+}
