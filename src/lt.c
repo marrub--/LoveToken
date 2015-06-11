@@ -27,9 +27,33 @@ THE SOFTWARE.
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
-#include <iconv.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
+#ifdef __GDCC__
+	#include <ACS_Zandronum.h>
+#else
+	#ifndef NO_ICONV
+		#include <iconv.h>
+	#endif
+#endif
+
+#ifdef __GDCC__
+#define fopen LT_FOpen
+#define ftell LT_FTell
+#define fgetc LT_FGetC
+#define ungetc LT_UnGetC
+#define fseek LT_FSeek
+#define fclose LT_FClose
+#define FILE LT_File
+
+typedef struct
+{
+	__str langId;
+	__str data;
+	int pos;
+} LT_File;
+#endif
 
 /*
  * Variables
@@ -38,10 +62,14 @@ THE SOFTWARE.
 static LT_GarbageList *gbHead, *gbRover;
 static FILE *parseFile;
 static LT_Config cfg;
+
+#ifndef NO_ICONV
 static iconv_t icDesc;
+#endif
+
 static bool assertError = false;
 static char *assertString;
-static char *stringChars = "\"", *charChars = "'";
+static char *stringChars = (char *)"\"", *charChars = (char *)"'";
 
 static const char *errors[] = {
 	"LT_Error: Syntax error",
@@ -67,6 +95,7 @@ const char *LT_TkNames[] = {
  * Functions
  */
 
+#ifndef NO_ICONV
 static void LT_DoConvert(char **str)
 {
 	size_t i = strlen(*str);
@@ -81,6 +110,7 @@ static void LT_DoConvert(char **str)
 	free(*str);
 	*str = strbuf;
 }
+#endif
 
 static void *LT_Alloc(size_t size)
 {
@@ -108,24 +138,93 @@ static void *LT_ReAlloc(void *ptr, size_t newSize)
 
 static void *LT_SetGarbage(void *p)
 {
+#ifndef __GDCC__
 	gbRover->next = LT_Alloc(sizeof(LT_GarbageList));
 	gbRover = gbRover->next;
 	gbRover->ptr = p;
 	gbRover->next = NULL;
 	
 	return gbRover->ptr;
+#else
+	return p;
+#endif
 }
+
+#ifdef __GDCC__
+#define StrParam(...) \
+  ( \
+   ACS_BeginStrParam(), \
+   __nprintf(__VA_ARGS__), \
+   ACS_EndStrParam() \
+  )
+#define StrParamL(...) (StrParam("%LS", StrParam(__VA_ARGS__)))
+
+LT_File *LT_FOpen(__str languageId, const char *mode)
+{
+	LT_File *file = LT_Alloc(sizeof(LT_File));
+	
+	file->langId = languageId;
+	file->data = StrParamL("%S", languageId);
+	file->pos = 0;
+	
+	return file;
+}
+
+int LT_FTell(LT_File *file)
+{
+	return file->pos;
+}
+
+int LT_FGetC(LT_File *file)
+{
+	int c = ACS_GetChar(file->data, file->pos++);
+	return c < 1 ? EOF : c;
+}
+
+int LT_UnGetC(int ch, LT_File *file)
+{
+	int c = ACS_GetChar(file->data, file->pos--);
+	return c < 1 ? EOF : c;
+}
+
+int LT_FSeek(LT_File *file, long int offset, int whence)
+{
+	switch(whence)
+	{
+	case SEEK_SET:
+		file->pos = offset;
+		return 0;
+	case SEEK_CUR:
+		file->pos += offset;
+		return 0;
+	case SEEK_END:
+		file->pos = ACS_StrLen(file->data) + offset;
+		return 0;
+	}
+	
+	return 1;
+}
+
+int LT_FClose(LT_File *file)
+{
+	free(file);
+	return 0;
+}
+#endif
 
 void LT_Init(LT_Config initCfg)
 {
+#ifndef __GDCC__
 	gbHead = LT_Alloc(sizeof(LT_GarbageList));
 	gbHead->next = NULL;
 	gbHead->ptr = NULL;
 	
 	gbRover = gbHead;
+#endif
 	
 	cfg = initCfg;
 	
+#ifndef NO_ICONV
 	if(cfg.doConvert && cfg.fromCode != NULL && cfg.toCode != NULL)
 	{
 		icDesc = iconv_open(cfg.toCode, cfg.fromCode);
@@ -144,6 +243,7 @@ void LT_Init(LT_Config initCfg)
 	{
 		cfg.stripInvalid = false;
 	}
+#endif
 	
 	if(cfg.stringChars != NULL)
 	{
@@ -200,6 +300,7 @@ void LT_SetConfig(LT_Config newCfg)
 {
 	cfg = newCfg;
 	
+#ifndef NO_ICONV
 	if(cfg.doConvert && cfg.fromCode != NULL && cfg.toCode != NULL)
 	{
 		if(icDesc != NULL)
@@ -229,6 +330,7 @@ void LT_SetConfig(LT_Config newCfg)
 	{
 		cfg.stripInvalid = false;
 	}
+#endif
 	
 	if(cfg.stringChars != NULL)
 	{
@@ -283,11 +385,14 @@ void LT_SetConfig(LT_Config newCfg)
 
 void LT_Quit()
 {
+#ifndef NO_ICONV
 	if(cfg.doConvert)
 	{
 		iconv_close(icDesc);
 	}
+#endif
 	
+#ifndef __GDCC__
 	gbRover = gbHead;
 	
 	while(gbRover != NULL)
@@ -307,6 +412,7 @@ void LT_Quit()
 	
 	gbRover = NULL;
 	gbHead = NULL;
+#endif
 }
 
 bool LT_Assert(bool assertion, const char *fmt, ...)
@@ -348,7 +454,11 @@ LT_AssertInfo LT_CheckAssert()
 	return ltAssertion;
 }
 
+#ifndef __GDCC__
 bool LT_OpenFile(const char *filePath)
+#else
+bool LT_OpenFile(__str filePath)
+#endif
 {
 	parseFile = fopen(filePath, "r");
 	
@@ -363,10 +473,14 @@ bool LT_OpenFile(const char *filePath)
 
 void LT_SetPos(int newPos)
 {
+#ifndef __GDCC__
 	if(fseek(parseFile, newPos, SEEK_SET) != 0)
 	{
 		LT_Assert(ferror(parseFile), "LT_SetPos: %s", strerror(errno));
 	}
+#else
+	fseek(parseFile, newPos, SEEK_SET);
+#endif
 }
 
 void LT_CloseFile()
@@ -408,10 +522,12 @@ char *LT_ReadNumber()
 	
 	str[i++] = '\0';
 	
+#ifndef NO_ICONV
 	if(cfg.doConvert)
 	{
 		LT_DoConvert(&str);
 	}
+#endif
 	
 	return LT_SetGarbage(LT_ReAlloc(str, i));
 }
@@ -474,10 +590,12 @@ char *LT_ReadString(char term)
 	
 	str[i++] = '\0';
 	
+#ifndef NO_ICONV
 	if(cfg.doConvert)
 	{
 		LT_DoConvert(&str);
 	}
+#endif
 	
 	return LT_SetGarbage(LT_ReAlloc(str, i));
 }
@@ -856,10 +974,12 @@ LT_Token LT_GetToken()
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
 		
+#ifndef NO_ICONV
 		if(cfg.doConvert)
 		{
 			LT_DoConvert(&str);
 		}
+#endif
 		
 		ungetc(c, parseFile);
 		

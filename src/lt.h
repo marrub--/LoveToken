@@ -50,6 +50,10 @@ THE SOFTWARE.
 	#define LT_EXPORT
 #endif
 
+#ifdef __GDCC__
+	#define NO_ICONV
+#endif
+
 enum
 {
 	TOK_Colon,  TOK_Comma,  TOK_Div,    TOK_Mod,     TOK_Mul,
@@ -79,9 +83,11 @@ typedef struct
 {
 	bool escapeChars;
 	bool stripInvalid;
+#ifndef NO_ICONV
 	bool doConvert;
 	const char *fromCode;
 	const char *toCode;
+#endif
 	const char *stringChars;
 	const char *charChars;
 } LT_Config;
@@ -117,7 +123,11 @@ bool LT_EXPORT LT_Assert(bool assertion, const char *fmt, ...);
 void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
 LT_AssertInfo LT_EXPORT LT_CheckAssert(void);
 
+#ifndef __GDCC__
 bool LT_EXPORT LT_OpenFile(const char *filePath);
+#else
+bool LT_EXPORT LT_OpenFile(__str filePath);
+#endif
 void LT_EXPORT LT_SetPos(int newPos);
 void LT_EXPORT LT_CloseFile(void);
 
