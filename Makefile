@@ -31,9 +31,9 @@ else
 		CC+=mingw32-gcc
 		LD+=mingw32-gcc
 		PLFLAGS+=-shared -g -ggdb
-		PLFLAGS2+=-Wl,--out-implib,bin/libLoveToken.a -liconv
+		PLFLAGS2+=-Wl,--out-implib,$(OUTDIR)/libLoveToken.a -liconv
 		LIBNAME+=$(OUTDIR)/LoveToken.dll
-		RMEXTRA+=bin/libLoveToken.a
+		RMEXTRA+=$(OUTDIR)/libLoveToken.a
 	else
 		ifeq ($(shell uname -s), Linux)
 			CC+=gcc
@@ -49,7 +49,7 @@ all: $(OUTDIR)
 	$(CC) $(CFLAGS) $(PCFLAGS) -o $(OUTDIR)/lt.o $(SRCDIR)/lt.c
 	$(LD) $(LFLAGS) $(PLFLAGS) -o $(LIBNAME) $(OUTDIR)/lt.o $(PLFLAGS2)
 
-bin:
+$(OUTDIR):
 	$(MKDIR) $(OUTDIR)
 
 clean:
