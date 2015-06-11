@@ -88,7 +88,7 @@ typedef struct
 
 typedef struct
 {
-	char *token;
+	const char *token;
 	char *string;
 	int pos;
 } LT_Token;
@@ -111,28 +111,28 @@ typedef struct LT_GarbageList_s
 
 void LT_EXPORT LT_Init(LT_Config initCfg);
 void LT_EXPORT LT_SetConfig(LT_Config newCfg);
-void LT_EXPORT LT_Quit();
+void LT_EXPORT LT_Quit(void);
 
 bool LT_EXPORT LT_Assert(bool assertion, const char *fmt, ...);
 void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
-LT_AssertInfo LT_EXPORT LT_CheckAssert();
+LT_AssertInfo LT_EXPORT LT_CheckAssert(void);
 
 bool LT_EXPORT LT_OpenFile(const char *filePath);
 void LT_EXPORT LT_SetPos(int newPos);
-void LT_EXPORT LT_CloseFile();
+void LT_EXPORT LT_CloseFile(void);
 
-char *LT_EXPORT LT_ReadNumber();
+char *LT_EXPORT LT_ReadNumber(void);
 char *LT_EXPORT LT_ReadString(char term);
 char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
-LT_Token LT_EXPORT LT_GetToken();
-void LT_EXPORT LT_SkipWhite();
+LT_Token LT_EXPORT LT_GetToken(void);
+void LT_EXPORT LT_SkipWhite(void);
 
 /*
  * Variables
  * Don't include these into FFI declarations.
  */
 
-extern char *LT_EXPORT LT_TkNames[];
+extern const char *LT_EXPORT LT_TkNames[];
 
 #endif
 
