@@ -1,39 +1,59 @@
 CC=
-MKDIR=
-RM=
+LD=
+MKDIR=mkdir -p
+RM=rm
 PCFLAGS=
 PLFLAGS=
 LIBNAME=
 OUTDIR=bin
 SRCDIR=src
-LFLAGS=-shared -g -ggdb
-CFLAGS=--std=c99 -g -ggdb -O2 -Wall
+LFLAGS=
+CFLAGS=
 RMEXTRA=
+GDCCBUILD=OFF
+EXAMPLEO=
+EXAMPLEC=
 
-ifeq ($(OS),Windows_NT)
-	CC+=mingw32-gcc
-	MKDIR+=mkdir -p
-	RM+=rm
-	PLFLAGS+=-Wl,--out-implib,bin/libLoveToken.a
-	LIBNAME+=$(OUTDIR)/LoveToken.dll
-	RMEXTRA+=bin/libLoveToken.a
+ifeq ($(GDCCBUILD),ON)
+	CC+=gdcc-cc
+	LD+=gdcc-ld
+	MKDIR+=mkdir
+	LIBNAME+=$(OUTDIR)/LoveToken.bin
+	PCFLAGS+=--bc-target=ZDoom -i$(SRCDIR)
+	LFLAGS+=--bc-target=ZDoom
+	EXAMPLEC+=examples/gdcc.c
+	# These are completely arbitrary.
+	EXAMPLEO+=$(OUTDIR)/libc.ir $(OUTDIR)/libGDCC.ir $(OUTDIR)/libGDCC-c.ir $(OUTDIR)/libGDCC-ZDACS-asm.ir
 else
-	ifeq ($(shell uname -s), Linux)
-		CC+=gcc
-		MKDIR+=mkdir -p
-		RM+=rm
-		PCFLAGS+=-fPIC
-		LIBNAME+=$(OUTDIR)/LoveToken.so
+	EXAMPLEC+=examples/main.c
+	PCFLAGS+=--std=c99 -g -ggdb -O2 -Wall -c -I$(SRCDIR)
+	
+	ifeq ($(OS),Windows_NT)
+		CC+=mingw32-gcc
+		LD+=mingw32-gcc
+		PLFLAGS+=-shared -g -ggdb
+		PLFLAGS2+=-Wl,--out-implib,bin/libLoveToken.a -liconv
+		LIBNAME+=$(OUTDIR)/LoveToken.dll
+		RMEXTRA+=bin/libLoveToken.a
+	else
+		ifeq ($(shell uname -s), Linux)
+			CC+=gcc
+			LD+=gcc
+			PCFLAGS+=-fPIC
+			PLFLAGS2+=-liconv
+			LIBNAME+=$(OUTDIR)/LoveToken.so
+		endif
 	endif
 endif
 
 all:
 	$(MKDIR) $(OUTDIR)
-	$(CC) $(CFLAGS) $(PCFLAGS) -c -o $(OUTDIR)/lt.o $(SRCDIR)/lt.c
-	$(CC) $(LFLAGS) -o $(LIBNAME) $(OUTDIR)/lt.o $(PLFLAGS) -liconv
+	$(CC) $(CFLAGS) $(PCFLAGS) -o $(OUTDIR)/lt.o $(SRCDIR)/lt.c
+	$(LD) $(LFLAGS) $(PLFLAGS) -o $(LIBNAME) $(OUTDIR)/lt.o $(PLFLAGS2)
 
 clean:
 	$(RM) $(LIBNAME) $(OUTDIR)/lt.o $(RMEXTRA)
 
-example:
-	$(CC) $(CFLAGS) -I$(SRCDIR) -L$(OUTDIR) -o $(OUTDIR)/example examples/main.c -lLoveToken
+example: all
+	$(CC) $(CFLAGS) $(PCFLAGS) -o $(OUTDIR)/example.o $(EXAMPLEC)
+	$(LD) $(LFLAGS) -o $(OUTDIR)/example $(OUTDIR)/example.o $(EXAMPLEO) $(OUTDIR)/lt.o $(PLFLAGS2)

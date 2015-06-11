@@ -1,0 +1,3 @@
+[enu default]
+
+EXAMPLESCRIPT="The quick brown_fox jumps over the !Lazy_Dog.;\n 5 ** 5 ** 5 + 3 []";
