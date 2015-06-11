@@ -17,7 +17,6 @@ EXAMPLEC=
 ifeq ($(GDCCBUILD),ON)
 	CC+=gdcc-cc
 	LD+=gdcc-ld
-	MKDIR+=mkdir
 	LIBNAME+=$(OUTDIR)/LoveToken.bin
 	PCFLAGS+=--bc-target=ZDoom -i$(SRCDIR)
 	LFLAGS+=--bc-target=ZDoom
@@ -46,10 +45,12 @@ else
 	endif
 endif
 
-all:
-	$(MKDIR) $(OUTDIR)
+all: $(OUTDIR)
 	$(CC) $(CFLAGS) $(PCFLAGS) -o $(OUTDIR)/lt.o $(SRCDIR)/lt.c
 	$(LD) $(LFLAGS) $(PLFLAGS) -o $(LIBNAME) $(OUTDIR)/lt.o $(PLFLAGS2)
+
+bin:
+	$(MKDIR) $(OUTDIR)
 
 clean:
 	$(RM) $(LIBNAME) $(OUTDIR)/lt.o $(RMEXTRA)
