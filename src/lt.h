@@ -51,7 +51,7 @@ THE SOFTWARE.
 #endif
 
 #ifdef __GDCC__
-	#define NO_ICONV
+	#define LT_NO_ICONV
 #endif
 
 enum
@@ -83,7 +83,7 @@ typedef struct
 {
 	bool escapeChars;
 	bool stripInvalid;
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 	bool doConvert;
 	const char *fromCode;
 	const char *toCode;

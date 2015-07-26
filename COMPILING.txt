@@ -1,6 +1,8 @@
-Compiling LoveToken is near trivial since it only needs C99 (and optionally iconv).
-Build an object file from lt.c (and link it with iconv if you want conversion) into a dll/so/etc.
-You can compile with the NO_ICONV definition to skip iconv requirements.
+Compiling LoveToken is trivial since it only needs C99, and optionally iconv.
+You can compile with the LT_NO_ICONV definition to disable iconv.
 
-Also, compiling with GDCC ( http://github.com/DavidPH/GDCC ) is now allowed.
+Compile lt.c to an object file and statically or dynamically link it with
+your application. That's it. Don't forget to include lt.h.
+
+Also, compiling with GDCC ( http://github.com/DavidPH/GDCC ) works.
 It will automatically omit iconv and use some specialized functions to work.

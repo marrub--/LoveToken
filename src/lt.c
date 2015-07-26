@@ -33,12 +33,15 @@ THE SOFTWARE.
 #ifdef __GDCC__
 	#include <ACS_Zandronum.h>
 #else
-	#ifndef NO_ICONV
+	#ifndef LT_NO_ICONV
 		#include <iconv.h>
 	#endif
 #endif
 
 #ifdef __GDCC__
+
+// TODO: replace these with GDCC's new file function tables or whatever they're called
+
 #define fopen LT_FOpen
 #define ftell LT_FTell
 #define fgetc LT_FGetC
@@ -63,7 +66,7 @@ static LT_GarbageList *gbHead, *gbRover;
 static FILE *parseFile;
 static LT_Config cfg;
 
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 static iconv_t icDesc;
 #endif
 
@@ -95,7 +98,7 @@ const char *LT_TkNames[] = {
  * Functions
  */
 
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 static void LT_DoConvert(char **str)
 {
 	size_t i = strlen(*str);
@@ -152,11 +155,11 @@ static void *LT_SetGarbage(void *p)
 
 #ifdef __GDCC__
 #define StrParam(...) \
-  ( \
-   ACS_BeginStrParam(), \
-   __nprintf(__VA_ARGS__), \
-   ACS_EndStrParam() \
-  )
+	( \
+		ACS_BeginStrParam(), \
+		__nprintf(__VA_ARGS__), \
+		ACS_EndStrParam() \
+	)
 #define StrParamL(...) (StrParam("%LS", StrParam(__VA_ARGS__)))
 
 LT_File *LT_FOpen(__str languageId, const char *mode)
@@ -215,6 +218,7 @@ int LT_FClose(LT_File *file)
 void LT_Init(LT_Config initCfg)
 {
 #ifndef __GDCC__
+	// [marrub] we don't need a garbage collector in GDCC
 	gbHead = LT_Alloc(sizeof(LT_GarbageList));
 	gbHead->next = NULL;
 	gbHead->ptr = NULL;
@@ -224,7 +228,7 @@ void LT_Init(LT_Config initCfg)
 	
 	cfg = initCfg;
 	
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 	if(cfg.doConvert && cfg.fromCode != NULL && cfg.toCode != NULL)
 	{
 		icDesc = iconv_open(cfg.toCode, cfg.fromCode);
@@ -300,7 +304,7 @@ void LT_SetConfig(LT_Config newCfg)
 {
 	cfg = newCfg;
 	
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 	if(cfg.doConvert && cfg.fromCode != NULL && cfg.toCode != NULL)
 	{
 		if(icDesc != NULL)
@@ -385,7 +389,7 @@ void LT_SetConfig(LT_Config newCfg)
 
 void LT_Quit()
 {
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 	if(cfg.doConvert)
 	{
 		iconv_close(icDesc);
@@ -434,7 +438,7 @@ bool LT_Assert(bool assertion, const char *fmt, ...)
 		
 		snprintf(assertString, 512, "%s%s", ftString, asBuffer);
 		
-		LT_SetGarbage(LT_ReAlloc(assertString, strlen(assertString) + 1));
+		LT_SetGarbage(assertString = LT_ReAlloc(assertString, strlen(assertString) + 1));
 	}
 	
 	return assertion;
@@ -522,7 +526,7 @@ char *LT_ReadNumber()
 	
 	str[i++] = '\0';
 	
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 	if(cfg.doConvert)
 	{
 		LT_DoConvert(&str);
@@ -590,7 +594,7 @@ char *LT_ReadString(char term)
 	
 	str[i++] = '\0';
 	
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 	if(cfg.doConvert)
 	{
 		LT_DoConvert(&str);
@@ -974,7 +978,7 @@ LT_Token LT_GetToken()
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
 		
-#ifndef NO_ICONV
+#ifndef LT_NO_ICONV
 		if(cfg.doConvert)
 		{
 			LT_DoConvert(&str);
