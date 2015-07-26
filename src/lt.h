@@ -115,6 +115,10 @@ typedef struct LT_GarbageList_s
  * Functions
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void LT_EXPORT LT_Init(LT_Config initCfg);
 void LT_EXPORT LT_SetConfig(LT_Config newCfg);
 void LT_EXPORT LT_Quit(void);
@@ -137,12 +141,20 @@ char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
 LT_Token LT_EXPORT LT_GetToken(void);
 void LT_EXPORT LT_SkipWhite(void);
 
+#ifdef __cplusplus
+}
+#endif
+
 /*
  * Variables
  * Don't include these into FFI declarations.
  */
 
+#ifdef __cplusplus
+extern "C" const char *LT_EXPORT LT_TkNames[];
+#else
 extern const char *LT_EXPORT LT_TkNames[];
+#endif
 
 #endif
 
