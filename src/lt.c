@@ -438,7 +438,7 @@ bool LT_Assert(bool assertion, const char *fmt, ...)
 		
 		snprintf(assertString, 512, "%s%s", ftString, asBuffer);
 		
-		LT_SetGarbage(assertString = LT_ReAlloc(assertString, strlen(assertString) + 1));
+		LT_SetGarbage(assertString);
 	}
 	
 	return assertion;
