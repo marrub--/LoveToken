@@ -41,12 +41,20 @@ THE SOFTWARE.
 // [marrub] When using in FFI, remove this from the declarations.
 //          Also make sure to redefine this if your platform is not supported.
 //          (OSX shouldn't need this at all)
-#if defined(_MSC_VER)
-	#define LT_EXPORT __declspec(dllexport)
-#elseif defined(_GCC)
-	#define LT_EXPORT __attribute__((visibility("default")))
+#ifndef LT_NO_EXPORT
+	#if defined(_MSC_VER)
+		#define LT_DLLEXPORT __declspec(dllexport)
+		#define LT_EXPORT
+	#elif defined(_GCC)
+		#define LT_EXPORT __attribute__((visibility("default")))
+		#define LT_DLLEXPORT
+	#else
+		#define LT_EXPORT
+		#define LT_DLLEXPORT
+	#endif
 #else
 	#define LT_EXPORT
+	#define LT_DLLEXPORT
 #endif
 
 #ifdef __GDCC__
@@ -81,12 +89,14 @@ enum
  * Types
  */
 
+typedef int LT_BOOL;
+
 typedef struct
 {
-	bool escapeChars;
-	bool stripInvalid;
+	LT_BOOL escapeChars;
+	LT_BOOL stripInvalid;
 #ifndef LT_NO_ICONV
-	bool doConvert;
+	LT_BOOL doConvert;
 	const char *fromCode;
 	const char *toCode;
 #endif
@@ -103,7 +113,7 @@ typedef struct
 
 typedef struct
 {
-	bool failure;
+	LT_BOOL failure;
 	const char *str;
 } LT_AssertInfo;
 
@@ -113,8 +123,6 @@ typedef struct LT_GarbageList_s
 	void *ptr;
 } LT_GarbageList; // [marrub] Don't include this into FFI declarations.
 
-typedef int LT_BOOL;
-
 /*
  * Functions
  */
@@ -123,27 +131,27 @@ typedef int LT_BOOL;
 extern "C" {
 #endif
 
-void LT_EXPORT LT_Init(LT_Config initCfg);
-void LT_EXPORT LT_SetConfig(LT_Config newCfg);
-void LT_EXPORT LT_Quit(void);
+LT_DLLEXPORT void LT_EXPORT LT_Init(LT_Config initCfg);
+LT_DLLEXPORT void LT_EXPORT LT_SetConfig(LT_Config newCfg);
+LT_DLLEXPORT void LT_EXPORT LT_Quit(void);
 
-bool LT_EXPORT LT_Assert(bool assertion, const char *fmt, ...);
-void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
-LT_AssertInfo LT_EXPORT LT_CheckAssert(void);
+LT_DLLEXPORT LT_BOOL LT_EXPORT LT_Assert(LT_BOOL assertion, const char *fmt, ...);
+LT_DLLEXPORT void LT_EXPORT LT_Error(int type); // [marrub] C use ONLY
+LT_DLLEXPORT LT_AssertInfo LT_EXPORT LT_CheckAssert(void);
 
 #ifndef __GDCC__
-bool LT_EXPORT LT_OpenFile(const char *filePath);
+LT_DLLEXPORT LT_BOOL LT_EXPORT LT_OpenFile(const char *filePath);
 #else
-bool LT_EXPORT LT_OpenFile(__str filePath);
+LT_DLLEXPORT LT_BOOL LT_EXPORT LT_OpenFile(__str filePath);
 #endif
-void LT_EXPORT LT_SetPos(int newPos);
-void LT_EXPORT LT_CloseFile(void);
+LT_DLLEXPORT void LT_EXPORT LT_SetPos(int newPos);
+LT_DLLEXPORT void LT_EXPORT LT_CloseFile(void);
 
-char *LT_EXPORT LT_ReadNumber(void);
-char *LT_EXPORT LT_ReadString(char term);
-char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
-LT_Token LT_EXPORT LT_GetToken(void);
-void LT_EXPORT LT_SkipWhite(void);
+LT_DLLEXPORT char *LT_EXPORT LT_ReadNumber(void);
+LT_DLLEXPORT char *LT_EXPORT LT_ReadString(char term);
+LT_DLLEXPORT char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
+LT_DLLEXPORT LT_Token LT_EXPORT LT_GetToken(void);
+LT_DLLEXPORT void LT_EXPORT LT_SkipWhite(void);
 
 #ifdef __cplusplus
 }

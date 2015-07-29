@@ -251,7 +251,7 @@ void LT_Init(LT_Config initCfg)
 	
 	if(cfg.stringChars != NULL)
 	{
-		int i;
+		unsigned i;
 		
 		stringChars = LT_Alloc(6);
 		
@@ -276,7 +276,7 @@ void LT_Init(LT_Config initCfg)
 	
 	if(cfg.charChars != NULL)
 	{
-		int i;
+		unsigned i;
 		
 		charChars = LT_Alloc(6);
 		
@@ -338,7 +338,7 @@ void LT_SetConfig(LT_Config newCfg)
 	
 	if(cfg.stringChars != NULL)
 	{
-		int i;
+		unsigned i;
 		
 		stringChars = LT_Alloc(6);
 		
@@ -363,7 +363,7 @@ void LT_SetConfig(LT_Config newCfg)
 	
 	if(cfg.charChars != NULL)
 	{
-		int i;
+		unsigned i;
 		
 		charChars = LT_Alloc(6);
 		
@@ -430,13 +430,13 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 		assertError = LT_TRUE;
 		assertString = malloc(512);
 		
-		snprintf(ftString, 16, ":%ld:", ftell(parseFile));
+		sprintf(ftString, ":%ld:", ftell(parseFile));
 		
 		va_start(va, fmt);
-		vsnprintf(asBuffer, 512, fmt, va);
+		vsprintf(asBuffer, fmt, va);
 		va_end(va);
 		
-		snprintf(assertString, 512, "%s%s", ftString, asBuffer);
+		sprintf(assertString, "%s%s", ftString, asBuffer);
 		
 		LT_SetGarbage(assertString);
 	}
@@ -606,6 +606,8 @@ char *LT_ReadString(char term)
 
 char *LT_Escaper(char *str, size_t pos, char escape)
 {
+	unsigned i;
+	
 	switch(escape)
 	{
 		case '\\': case '\'': case '"':  str[pos] = escape; break;
@@ -617,7 +619,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 		case 't': str[pos] = '\t'; break;
 		case 'v': str[pos] = '\v'; break;
 		case 'x': // [marrub] THIS ONE IS FUN
-			for(unsigned int i = 0;;)
+			for(i = 0;;)
 			{
 				int c = fgetc(parseFile);
 				
@@ -653,9 +655,11 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 		case '4': case '5': case '6': case '7':
 			{
 				int c = escape;
-				unsigned int i = 0;
+				unsigned n;
 				
-				for(unsigned int n = 2; n != 0; n--)
+				i = 0;
+				
+				for(n = 2; n != 0; n--)
 				{
 					switch(c)
 					{
@@ -914,7 +918,9 @@ LT_Token LT_GetToken()
 	
 	if(stringChars[0] != '\0')
 	{
-		for(size_t i = 0; i < 6;)
+		unsigned i;
+		
+		for(i = 0; i < 6;)
 		{
 			char cc = stringChars[i++];
 			
@@ -933,7 +939,9 @@ LT_Token LT_GetToken()
 	
 	if(charChars[0] != '\0')
 	{
-		for(size_t i = 0; i < 6;)
+		unsigned i;
+		
+		for(i = 0; i < 6;)
 		{
 			char cc = charChars[i++];
 			

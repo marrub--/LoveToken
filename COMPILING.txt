@@ -4,5 +4,7 @@ You can compile with the LT_NO_ICONV definition to disable iconv.
 Compile lt.c to an object file and statically or dynamically link it with
 your application. That's it. Don't forget to include lt.h.
 
+If you don't want to export it to a DLL/SO/whatever, define LT_NO_EXPORT.
+
 Also, compiling with GDCC ( http://github.com/DavidPH/GDCC ) works.
 It will automatically omit iconv and use some specialized functions to work.

@@ -28,11 +28,13 @@ local tokenizer = {}
 
 local loveToken = ffi.load("LoveToken")
 ffi.cdef([[
+typedef int LT_BOOL;
+
 typedef struct
 {
-	bool escapeChars;
-	bool stripInvalid;
-	bool doConvert;
+	LT_BOOL escapeChars;
+	LT_BOOL stripInvalid;
+	LT_BOOL doConvert;
 	const char *fromCode;
 	const char *toCode;
 	const char *stringChars;
@@ -41,33 +43,33 @@ typedef struct
 
 typedef struct
 {
-	char *token;
+	const char *token;
 	char *string;
 	int pos;
 } LT_Token;
 
 typedef struct
 {
-	bool failure;
+	LT_BOOL failure;
 	const char *str;
 } LT_AssertInfo;
 
 void LT_Init(LT_Config initCfg);
 void LT_SetConfig(LT_Config newCfg);
-void LT_Quit();
+void LT_Quit(void);
 
-bool LT_Assert(bool assertion, const char *str, ...);
-LT_AssertInfo LT_CheckAssert();
+LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...);
+LT_AssertInfo LT_CheckAssert(void);
 
-bool LT_OpenFile(const char *filePath);
+LT_BOOL LT_OpenFile(const char *filePath);
 void LT_SetPos(int newPos);
-void LT_CloseFile();
+void LT_CloseFile(void);
 
-char *LT_ReadNumber();
+char *LT_ReadNumber(void);
 char *LT_ReadString(char term);
 char *LT_Escaper(char *str, size_t pos, char escape);
-LT_Token LT_GetToken();
-void LT_SkipWhite();
+LT_Token LT_GetToken(void);
+void LT_SkipWhite(void);
 ]])
 
 local pReturn
