@@ -70,7 +70,7 @@ static LT_Config cfg;
 static iconv_t icDesc;
 #endif
 
-static bool assertError = false;
+static LT_BOOL assertError = LT_FALSE;
 static char *assertString;
 static char *stringChars = (char *)"\"", *charChars = (char *)"'";
 
@@ -235,17 +235,17 @@ void LT_Init(LT_Config initCfg)
 		
 		if(icDesc == (iconv_t) -1)
 		{
-			LT_Assert(true, "LT_Init: Failure opening iconv");
+			LT_Assert(LT_TRUE, "LT_Init: Failure opening iconv");
 		}
 	}
 	else
 	{
-		cfg.doConvert = false;
+		cfg.doConvert = LT_FALSE;
 	}
 	
 	if(cfg.stripInvalid && cfg.doConvert)
 	{
-		cfg.stripInvalid = false;
+		cfg.stripInvalid = LT_FALSE;
 	}
 #endif
 	
@@ -316,7 +316,7 @@ void LT_SetConfig(LT_Config newCfg)
 		
 		if(icDesc == (iconv_t) -1)
 		{
-			LT_Assert(true, "LT_Init: Failure opening iconv");
+			LT_Assert(LT_TRUE, "LT_Init: Failure opening iconv");
 		}
 	}
 	else
@@ -327,12 +327,12 @@ void LT_SetConfig(LT_Config newCfg)
 			icDesc = NULL;
 		}
 		
-		cfg.doConvert = false;
+		cfg.doConvert = LT_FALSE;
 	}
 	
 	if(cfg.stripInvalid && cfg.doConvert)
 	{
-		cfg.stripInvalid = false;
+		cfg.stripInvalid = LT_FALSE;
 	}
 #endif
 	
@@ -419,7 +419,7 @@ void LT_Quit()
 #endif
 }
 
-bool LT_Assert(bool assertion, const char *fmt, ...)
+LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 {
 	if(assertion)
 	{
@@ -427,7 +427,7 @@ bool LT_Assert(bool assertion, const char *fmt, ...)
 		char asBuffer[512];
 		
 		va_list va;
-		assertError = true;
+		assertError = LT_TRUE;
 		assertString = malloc(512);
 		
 		snprintf(ftString, 16, ":%ld:", ftell(parseFile));
@@ -459,20 +459,20 @@ LT_AssertInfo LT_CheckAssert()
 }
 
 #ifndef __GDCC__
-bool LT_OpenFile(const char *filePath)
+LT_BOOL LT_OpenFile(const char *filePath)
 #else
-bool LT_OpenFile(__str filePath)
+LT_BOOL LT_OpenFile(__str filePath)
 #endif
 {
 	parseFile = fopen(filePath, "r");
 	
 	if(parseFile == NULL)
 	{
-		LT_Assert(true, "LT_OpenFile: %s", strerror(errno));
-		return false;
+		LT_Assert(LT_TRUE, "LT_OpenFile: %s", strerror(errno));
+		return LT_FALSE;
 	}
 	
-	return true;
+	return LT_TRUE;
 }
 
 void LT_SetPos(int newPos)
@@ -542,7 +542,7 @@ char *LT_ReadString(char term)
 	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
 	int c;
 	
-	while(true)
+	while(LT_TRUE)
 	{
 		c = fgetc(parseFile);
 		
@@ -682,7 +682,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 			
 			break;
 		default:
-			LT_Assert(true, "LT_Escaper: Unknown escape character '%c'", escape);
+			LT_Assert(LT_TRUE, "LT_Escaper: Unknown escape character '%c'", escape);
 			break;
 	}
 	

@@ -29,7 +29,6 @@ THE SOFTWARE.
  */
 
 #include <stdlib.h>
-#include <stdbool.h>
 
 /*
  * Definitions
@@ -53,6 +52,9 @@ THE SOFTWARE.
 #ifdef __GDCC__
 	#define LT_NO_ICONV
 #endif
+
+#define LT_TRUE 1
+#define LT_FALSE 0
 
 enum
 {
@@ -110,6 +112,8 @@ typedef struct LT_GarbageList_s
 	struct LT_GarbageList_s *next;
 	void *ptr;
 } LT_GarbageList; // [marrub] Don't include this into FFI declarations.
+
+typedef int LT_BOOL;
 
 /*
  * Functions
