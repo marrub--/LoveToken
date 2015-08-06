@@ -428,7 +428,7 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 		
 		va_list va;
 		assertError = LT_TRUE;
-		assertString = malloc(512);
+		assertString = LT_Alloc(512);
 		
 		va_start(va, fmt);
 		vsprintf(asBuffer, fmt, va);
