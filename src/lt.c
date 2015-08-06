@@ -423,7 +423,6 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 {
 	if(assertion)
 	{
-		char *ftString = LT_Alloc(64);
 		char *asBuffer = LT_Alloc(512);
 		int place = (int)ftell(parseFile);
 		
@@ -431,13 +430,11 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 		assertError = LT_TRUE;
 		assertString = malloc(512);
 		
-		sprintf(ftString, "(offset %d)", place);
-		
 		va_start(va, fmt);
 		vsprintf(asBuffer, fmt, va);
 		va_end(va);
 		
-		sprintf(assertString, "%s %s", ftString, asBuffer);
+		sprintf(assertString, "(offset %d) %s", place, asBuffer);
 		
 		LT_SetGarbage(assertString);
 		
