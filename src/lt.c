@@ -430,7 +430,7 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 		assertError = LT_TRUE;
 		assertString = malloc(512);
 		
-		sprintf(ftString, ":%ld:", ftell(parseFile));
+		sprintf(ftString, ":%d:", (int)ftell(parseFile));
 		
 		va_start(va, fmt);
 		vsprintf(asBuffer, fmt, va);
