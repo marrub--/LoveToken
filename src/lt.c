@@ -424,7 +424,16 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 	if(assertion)
 	{
 		char *asBuffer = LT_Alloc(512);
-		int place = (int)ftell(parseFile);
+		int place;
+		
+		if(parseFile != NULL)
+		{
+			place = (int)ftell(parseFile);
+		}
+		else
+		{
+			place = -1;
+		}
 		
 		va_list va;
 		assertError = LT_TRUE;
