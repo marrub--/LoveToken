@@ -423,8 +423,8 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 {
 	if(assertion)
 	{
-		char *ftString = LT_Malloc(64);
-		char *asBuffer = LT_Malloc(512);
+		char *ftString = LT_Alloc(64);
+		char *asBuffer = LT_Alloc(512);
 		int place = (int)ftell(parseFile);
 		
 		va_list va;
