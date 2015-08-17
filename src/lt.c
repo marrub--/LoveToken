@@ -447,7 +447,6 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 		
 		LT_SetGarbage(assertString);
 		
-		free(ftString);
 		free(asBuffer);
 	}
 	
@@ -546,7 +545,7 @@ char *LT_ReadNumber()
 	return LT_SetGarbage(LT_ReAlloc(str, i));
 }
 
-char *LT_ReadString(char term)
+void LT_ReadString(LT_Token *tk, char term)
 {
 	size_t i = 0, strBlocks = 1;
 	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
@@ -563,10 +562,14 @@ char *LT_ReadString(char term)
 		
 		if(LT_Assert(c == EOF || c == '\n', "LT_ReadString: Unterminated string literal"))
 		{
-			char *emptyString = LT_Alloc(1);
+			char *emptyString = LT_Alloc(2);
 			emptyString[0] = '\0';
+			emptyString[1] = '\0';
 			
-			return LT_SetGarbage(emptyString);
+			tk->string = LT_SetGarbage(emptyString);
+			tk->strlen = 0;
+			
+			return;
 		}
 		
 		if(c == '\\' && cfg.escapeChars)
@@ -575,8 +578,10 @@ char *LT_ReadString(char term)
 			
 			if(LT_Assert(c == EOF || c == '\n', "LT_ReadString: Unterminated string literal"))
 			{
-				str[i] = '\0';
-				return str;
+				str[i++] = '\0';
+				tk->strlen = (unsigned)i - 1;
+				tk->string = LT_SetGarbage(LT_ReAlloc(str, i));
+				return;
 			}
 			
 			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
@@ -611,12 +616,16 @@ char *LT_ReadString(char term)
 	}
 #endif
 	
-	return LT_SetGarbage(LT_ReAlloc(str, i));
+	tk->strlen = (unsigned)i - 1;
+	tk->string = LT_SetGarbage(LT_ReAlloc(str, i));
+	
+	return;
 }
 
 char *LT_Escaper(char *str, size_t pos, char escape)
 {
 	unsigned i;
+	LT_BOOL exitloop;
 	
 	switch(escape)
 	{
@@ -629,7 +638,9 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 		case 't': str[pos] = '\t'; break;
 		case 'v': str[pos] = '\v'; break;
 		case 'x': // [marrub] THIS ONE IS FUN
-			for(i = 0;;)
+			i = 0;
+			exitloop = LT_FALSE;
+			while(!exitloop)
 			{
 				int c = fgetc(parseFile);
 				
@@ -655,6 +666,7 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 					default:
 						ungetc(c, parseFile);
 						str[pos] = i;
+						exitloop = LT_TRUE;
 						break;
 				}
 			}
@@ -941,7 +953,7 @@ LT_Token LT_GetToken()
 			else if(c == cc)
 			{
 				tk.token = LT_TkNames[TOK_String];
-				tk.string = LT_ReadString(c);
+				LT_ReadString(&tk, c);
 				return tk;
 			}
 		}
@@ -962,7 +974,7 @@ LT_Token LT_GetToken()
 			else if(c == cc)
 			{
 				tk.token = LT_TkNames[TOK_Charac];
-				tk.string = LT_ReadString(c);
+				LT_ReadString(&tk, c);
 				return tk;
 			}
 		}

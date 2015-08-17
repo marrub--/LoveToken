@@ -108,6 +108,7 @@ typedef struct
 {
 	const char *token;
 	char *string;
+	unsigned strlen;
 	int pos;
 } LT_Token;
 
@@ -128,7 +129,8 @@ typedef struct LT_GarbageList_s
  */
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 LT_DLLEXPORT void LT_EXPORT LT_Init(LT_Config initCfg);
@@ -148,7 +150,7 @@ LT_DLLEXPORT void LT_EXPORT LT_SetPos(int newPos);
 LT_DLLEXPORT void LT_EXPORT LT_CloseFile(void);
 
 LT_DLLEXPORT char *LT_EXPORT LT_ReadNumber(void);
-LT_DLLEXPORT char *LT_EXPORT LT_ReadString(char term);
+LT_DLLEXPORT void LT_EXPORT LT_ReadString(LT_Token *tk, char term);
 LT_DLLEXPORT char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
 LT_DLLEXPORT LT_Token LT_EXPORT LT_GetToken(void);
 LT_DLLEXPORT void LT_EXPORT LT_SkipWhite(void);
