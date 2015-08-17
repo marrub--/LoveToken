@@ -45,6 +45,7 @@ typedef struct
 {
 	const char *token;
 	char *string;
+	int strlen;
 	int pos;
 } LT_Token;
 
@@ -66,7 +67,7 @@ void LT_SetPos(int newPos);
 void LT_CloseFile(void);
 
 char *LT_ReadNumber(void);
-char *LT_ReadString(char term);
+void LT_ReadString(LT_Token *tk, char term);
 char *LT_Escaper(char *str, size_t pos, char escape);
 LT_Token LT_GetToken(void);
 void LT_SkipWhite(void);
@@ -114,8 +115,8 @@ function tokenizer:readNumber()
 	return ffi.string(pReturn)
 end
 
-function tokenizer:readString(term)
-	pReturn = loveToken.LT_ReadString(term)
+function tokenizer:readString(tk, term)
+	pReturn = loveToken.LT_ReadString(tk, term)
 	tokenizer:checkError()
 	return ffi.string(pReturn)
 end
@@ -132,6 +133,7 @@ function tokenizer:getToken()
 	local lt = {}
 	lt.token = ffi.string(pReturn.token)
 	lt.string = pReturn.string
+	lt.strlen = pReturn.strlen
 	lt.pos = pReturn.pos
 	if (pReturn.string ~= nil) then
 		lt.string = ffi.string(pReturn.string)
