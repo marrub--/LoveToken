@@ -153,7 +153,9 @@ LT_DLLEXPORT char *LT_EXPORT LT_ReadNumber(void);
 LT_DLLEXPORT void LT_EXPORT LT_ReadString(LT_Token *tk, char term);
 LT_DLLEXPORT char *LT_EXPORT LT_Escaper(char *str, size_t pos, char escape);
 LT_DLLEXPORT LT_Token LT_EXPORT LT_GetToken(void);
+LT_DLLEXPORT char *LT_EXPORT LT_ReadLiteral(void);
 LT_DLLEXPORT void LT_EXPORT LT_SkipWhite(void);
+LT_DLLEXPORT void LT_EXPORT LT_SkipWhite2(void);
 
 #ifdef __cplusplus
 }

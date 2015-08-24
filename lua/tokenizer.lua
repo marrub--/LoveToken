@@ -70,7 +70,9 @@ char *LT_ReadNumber(void);
 void LT_ReadString(LT_Token *tk, char term);
 char *LT_Escaper(char *str, size_t pos, char escape);
 LT_Token LT_GetToken(void);
+char *LT_ReadLiteral(void);
 void LT_SkipWhite(void);
+void LT_SkipWhite2(void);
 ]])
 
 local pReturn
@@ -141,6 +143,10 @@ function tokenizer:getToken()
 	return lt
 end
 
+function tokenizer:readLiteral()
+	return ffi.string(loveToken.LT_ReadLiteral())
+end
+
 function tokenizer:setPos(newPos)
 	loveToken.LT_SetPos(newPos)
 	tokenizer:checkError()
@@ -148,6 +154,10 @@ end
 
 function tokenizer:skipWhite()
 	loveToken.LT_SkipWhite()
+end
+
+function tokenizer:skipWhite2()
+	loveToken.LT_SkipWhite2()
 end
 
 return tokenizer

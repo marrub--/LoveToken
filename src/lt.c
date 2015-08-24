@@ -396,6 +396,8 @@ void LT_Quit()
 	}
 #endif
 	
+	LT_CloseFile();
+	
 #ifndef __GDCC__
 	gbRover = gbHead;
 	
@@ -514,7 +516,7 @@ char *LT_ReadNumber()
 	{
 		c = fgetc(parseFile);
 		
-		if(!isalnum(c))
+		if(!isalnum(c) && c != '.')
 		{
 			ungetc(c, parseFile);
 			break;
@@ -625,7 +627,7 @@ void LT_ReadString(LT_Token *tk, char term)
 char *LT_Escaper(char *str, size_t pos, char escape)
 {
 	unsigned i;
-	LT_BOOL exitloop;
+	LT_BOOL exitloop = LT_FALSE;
 	
 	switch(escape)
 	{
@@ -639,7 +641,6 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 		case 'v': str[pos] = '\v'; break;
 		case 'x': // [marrub] THIS ONE IS FUN
 			i = 0;
-			exitloop = LT_FALSE;
 			while(!exitloop)
 			{
 				int c = fgetc(parseFile);
@@ -739,7 +740,7 @@ LT_Token LT_GetToken()
 		}
 	}
 	
-	tk.pos = ftell(parseFile);
+	tk.pos = ftell(parseFile) - 1;
 	
 	switch(c)
 	{
@@ -1027,9 +1028,28 @@ LT_Token LT_GetToken()
 	tk.string[0] = c;
 	tk.string[1] = '\0';
 	
-	LT_SetGarbage(tk.string);
+	tk.string = LT_SetGarbage(tk.string);
 	
 	return tk;
+}
+
+char *LT_ReadLiteral()
+{
+	size_t i = 0;
+	int c;
+	char *str = LT_Alloc(4096);
+	
+	while(LT_TRUE)
+	{
+		c = fgetc(parseFile);
+		if(c == '\r' || c == '\n' || c == EOF) break;
+		
+		str[i++] = c;
+	}
+	
+	str[i++] = '\0';
+	
+	return LT_SetGarbage(LT_ReAlloc(str, i));
 }
 
 void LT_SkipWhite()
@@ -1037,6 +1057,18 @@ void LT_SkipWhite()
 	char c = fgetc(parseFile);
 	
 	while(isspace(c) && c != EOF)
+	{
+		c = fgetc(parseFile);
+	}
+	
+	ungetc(c, parseFile);
+}
+
+void LT_SkipWhite2()
+{
+	char c = fgetc(parseFile);
+	
+	while(isspace(c) && c != EOF && c != '\r' && c != '\n')
 	{
 		c = fgetc(parseFile);
 	}
