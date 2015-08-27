@@ -36,7 +36,7 @@ THE SOFTWARE.
 
 // [marrub] This can be changed if you have either a lot of very
 //          long strings, or a lot of very small strings, for optimization.
-#define TOKEN_STR_BLOCK_LENGTH 128
+#define TOKEN_STR_BLOCK_LENGTH 4096
 
 // [marrub] When using in FFI, remove this from the declarations.
 //          Also make sure to redefine this if your platform is not supported.

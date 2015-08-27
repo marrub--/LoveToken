@@ -522,9 +522,9 @@ char *LT_ReadNumber()
 			break;
 		}
 		
-		if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
+		if(i >= (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 		{
-			str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
+			str = LT_ReAlloc(str, 1 + TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 		}
 		
 		str[i++] = c;
@@ -586,18 +586,18 @@ void LT_ReadString(LT_Token *tk, char term)
 				return;
 			}
 			
-			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
+			if(i >= (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 			{
-				str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
+				str = LT_ReAlloc(str, 1 + TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 			}
 			
 			str = LT_Escaper(str, i++, c);
 		}
 		else
 		{
-			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
+			if(i >= (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 			{
-				str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
+				str = LT_ReAlloc(str, 1 + TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 			}
 			
 			str[i++] = c;
@@ -997,9 +997,9 @@ LT_Token LT_GetToken()
 		
 		while(c != EOF && (isalnum(c) || c == '_'))
 		{
-			if(i > (TOKEN_STR_BLOCK_LENGTH * strBlocks))
+			if(i >= (TOKEN_STR_BLOCK_LENGTH * strBlocks))
 			{
-				str = LT_ReAlloc(str, TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
+				str = LT_ReAlloc(str, 1 + TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
 			}
 			
 			str[i++] = c;
@@ -1036,13 +1036,19 @@ LT_Token LT_GetToken()
 char *LT_ReadLiteral()
 {
 	size_t i = 0;
+	size_t strBlocks = 1;
 	int c;
-	char *str = LT_Alloc(4096);
+	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
 	
 	while(LT_TRUE)
 	{
 		c = fgetc(parseFile);
 		if(c == '\r' || c == '\n' || c == EOF) break;
+		
+		if(i >= (TOKEN_STR_BLOCK_LENGTH * strBlocks))
+		{
+			str = LT_ReAlloc(str, 1 + TOKEN_STR_BLOCK_LENGTH * ++strBlocks);
+		}
 		
 		str[i++] = c;
 	}
