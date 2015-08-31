@@ -106,8 +106,18 @@ function tokenizer:openFile(filePath)
 	return pReturn
 end
 
+function tokenizer:openString(str)
+	pReturn = loveToken.LT_OpenString(str)
+	tokenizer:checkError()
+	return pReturn
+end
+
 function tokenizer:closeFile()
 	loveToken.LT_CloseFile()
+end
+
+function tokenizer:closeString()
+	loveToken.LT_CloseString()
 end
 
 function tokenizer:quit()
