@@ -64,7 +64,10 @@ typedef struct
 
 static LT_GarbageList *gbHead, *gbRover;
 static FILE *parseFile;
+static const char *parseStr;
 static LT_Config cfg;
+static int parseMode;
+static int parseStrPos;
 
 #ifndef LT_NO_ICONV
 static iconv_t icDesc;
@@ -397,6 +400,9 @@ void LT_Quit()
 #endif
 	
 	LT_CloseFile();
+	LT_CloseString();
+	
+	parseMode = LT_PARSE_NONE;
 	
 #ifndef __GDCC__
 	gbRover = gbHead;
@@ -428,9 +434,13 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...)
 		char *asBuffer = LT_Alloc(512);
 		int place;
 		
-		if(parseFile != NULL)
+		if(parseMode == LT_PARSE_FILE && parseFile != NULL)
 		{
 			place = (int)ftell(parseFile);
+		}
+		else if (parseMode == LT_PARSE_STR && parseStr != NULL)
+		{
+			place = parseStrPos;
 		}
 		else
 		{
@@ -475,6 +485,7 @@ LT_BOOL LT_OpenFile(const char *filePath)
 LT_BOOL LT_OpenFile(__str filePath)
 #endif
 {
+	parseMode = LT_PARSE_FILE;
 	parseFile = fopen(filePath, "r");
 	
 	if(parseFile == NULL)
@@ -486,15 +497,37 @@ LT_BOOL LT_OpenFile(__str filePath)
 	return LT_TRUE;
 }
 
+LT_BOOL LT_OpenString(const char *str)
+{
+	parseMode = LT_PARSE_STR;
+	parseStr = str;
+	parseStrPos = 0;
+	
+	if (parseStr == NULL)
+	{
+		LT_Assert(LT_TRUE, "LT_OpenString: %s", strerror(errno));
+		return LT_FALSE;
+	}
+	
+	return LT_TRUE;
+}
+
 void LT_SetPos(int newPos)
 {
 #ifndef __GDCC__
-	if(fseek(parseFile, newPos, SEEK_SET) != 0)
+	if(parseMode == LT_PARSE_FILE && fseek(parseFile, newPos, SEEK_SET) != 0)
 	{
 		LT_Assert(ferror(parseFile), "LT_SetPos: %s", strerror(errno));
 	}
+	else if (parseMode == LT_PARSE_STR)
+	{
+		parseStrPos = newPos;
+	}
 #else
-	fseek(parseFile, newPos, SEEK_SET);
+	if (parseMode == LT_PARSE_FILE)
+		fseek(parseFile, newPos, SEEK_SET);
+	else if (parseMode == LT_PARSE_STR)
+		parseStrPos = newPos;
 #endif
 }
 
@@ -504,6 +537,12 @@ void LT_CloseFile()
 	{
 		fclose(parseFile);
 	}
+	parseMode = LT_PARSE_NONE;
+}
+
+void LT_CloseString()
+{
+	parseMode = LT_PARSE_NONE;
 }
 
 char *LT_ReadNumber()
@@ -514,11 +553,17 @@ char *LT_ReadNumber()
 	
 	while(c != EOF)
 	{
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(!isalnum(c) && c != '.')
 		{
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 			break;
 		}
 		
@@ -551,11 +596,14 @@ void LT_ReadString(LT_Token *tk, char term)
 {
 	size_t i = 0, strBlocks = 1;
 	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
-	int c;
+	int c = 0;
 	
 	while(LT_TRUE)
 	{
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == term)
 		{
@@ -576,7 +624,10 @@ void LT_ReadString(LT_Token *tk, char term)
 		
 		if(c == '\\' && cfg.escapeChars)
 		{
-			c = fgetc(parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				c = fgetc(parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[++parseStrPos];
 			
 			if(LT_Assert(c == EOF || c == '\n', "LT_ReadString: Unterminated string literal"))
 			{
@@ -643,7 +694,11 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 			i = 0;
 			while(!exitloop)
 			{
-				int c = fgetc(parseFile);
+				int c = 0;
+				if (parseMode == LT_PARSE_FILE)
+					c = fgetc(parseFile);
+				else if (parseMode == LT_PARSE_STR)
+					c = parseStr[++parseStrPos];
 				
 				switch(c)
 				{
@@ -665,7 +720,10 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 					case 'f': case 'F': i = i * 16 + 0xF; break;
 					
 					default:
-						ungetc(c, parseFile);
+						if (parseMode == LT_PARSE_FILE)
+							ungetc(c, parseFile);
+						else if (parseMode == LT_PARSE_STR)
+							c = parseStr[--parseStrPos];
 						str[pos] = i;
 						exitloop = LT_TRUE;
 						break;
@@ -695,12 +753,18 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 						case '6': i = i * 8 + 06; break;
 						case '7': i = i * 8 + 07; break;
 						default:
-							ungetc(c, parseFile);
+							if (parseMode == LT_PARSE_FILE)
+								ungetc(c, parseFile);
+							else if (parseMode == LT_PARSE_STR)
+								c = parseStr[--parseStrPos];
 							str[pos] = i;
 							return str;
 					}
 					
-					c = fgetc(parseFile);
+					if (parseMode == LT_PARSE_FILE)
+						c = fgetc(parseFile);
+					else if (parseMode == LT_PARSE_STR)
+						c = parseStr[++parseStrPos];
 				}
 				
 				str[pos] = i;
@@ -719,28 +783,44 @@ char *LT_Escaper(char *str, size_t pos, char escape)
 LT_Token LT_GetToken()
 {
 	LT_Token tk = { 0 };
-	int c = fgetc(parseFile);
+	int c = 0;
+	if (parseMode == LT_PARSE_FILE)
+		c = fgetc(parseFile);
+	else if (parseMode == LT_PARSE_STR)
+		c = parseStr[++parseStrPos];
 	
 	if(c == EOF)
 	{
 		tk.token = LT_TkNames[TOK_EOF];
-		tk.pos = ftell(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			tk.pos = ftell(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			tk.pos = parseStrPos;
 		return tk;
 	}
 	
 	while(isspace(c) && c != '\n')
 	{
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == EOF) // [marrub] This could have caused issues if there was whitespace before EOF.
 		{
 			tk.token = LT_TkNames[TOK_EOF];
-			tk.pos = ftell(parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				tk.pos = ftell(parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				tk.pos = parseStrPos;
 			return tk;
 		}
 	}
 	
-	tk.pos = ftell(parseFile) - 1;
+	if (parseMode == LT_PARSE_FILE)
+		tk.pos = ftell(parseFile) - 1;
+	else if (parseMode == LT_PARSE_STR)
+		tk.pos = parseStrPos - 1;
 	
 	switch(c)
 	{
@@ -764,8 +844,10 @@ LT_Token LT_GetToken()
 	//          but sometimes I really do care about my sanity. And wrists.
 #define DoubleTokDef(ch, t1, t2) \
 	case ch: \
-		c = fgetc(parseFile); \
-		\
+		if (parseMode == LT_PARSE_FILE) \
+			c = fgetc(parseFile); \
+		else if (parseMode == LT_PARSE_STR) \
+			c = parseStr[++parseStrPos]; \
 		if(c == ch) \
 		{ \
 			tk.token = LT_TkNames[t2]; \
@@ -773,7 +855,10 @@ LT_Token LT_GetToken()
 		else \
 		{ \
 			tk.token = LT_TkNames[t1]; \
-			ungetc(c, parseFile); \
+			if (parseMode == LT_PARSE_FILE) \
+				ungetc(c, parseFile); \
+			else if (parseMode == LT_PARSE_STR) \
+				c = parseStr[--parseStrPos]; \
 		} \
 		\
 		return tk;
@@ -787,7 +872,10 @@ LT_Token LT_GetToken()
 	
 	// [marrub] Special god damn snowflakes
 	case '>':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '=')
 		{
@@ -800,12 +888,18 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_CmpGT];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
 	case '<':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '=')
 		{
@@ -822,12 +916,18 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_CmpLT];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
 	case '!':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '=')
 		{
@@ -836,12 +936,18 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Not];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
 	case '~':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '=')
 		{
@@ -849,7 +955,10 @@ LT_Token LT_GetToken()
 		}
 		else
 		{
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 			tk.token = LT_TkNames[TOK_ChrSeq];
 			tk.string = LT_Alloc(2);
 			tk.string[0] = c;
@@ -861,7 +970,10 @@ LT_Token LT_GetToken()
 		return tk;
 	// [zombie] extra tokens
 	case '/':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '/')
 		{
@@ -878,12 +990,18 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Div];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
 	case '*':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '/')
 		{
@@ -896,12 +1014,18 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Mul];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
 	case '-':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if(c == '-')
 		{
@@ -914,12 +1038,18 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Sub];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
 	case '+':
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		
 		if (c == '/')
 		{
@@ -932,7 +1062,10 @@ LT_Token LT_GetToken()
 		else
 		{
 			tk.token = LT_TkNames[TOK_Add];
-			ungetc(c, parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				ungetc(c, parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[--parseStrPos];
 		}
 		
 		return tk;
@@ -983,7 +1116,10 @@ LT_Token LT_GetToken()
 	
 	if(isdigit(c))
 	{
-		ungetc(c, parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			ungetc(c, parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[--parseStrPos];
 		
 		tk.token = LT_TkNames[TOK_Number];
 		tk.string = LT_ReadNumber();
@@ -1004,7 +1140,10 @@ LT_Token LT_GetToken()
 			
 			str[i++] = c;
 			
-			c = fgetc(parseFile);
+			if (parseMode == LT_PARSE_FILE)
+				c = fgetc(parseFile);
+			else if (parseMode == LT_PARSE_STR)
+				c = parseStr[++parseStrPos];
 		}
 		
 		str[i++] = '\0'; // [marrub] Completely forgot this line earlier. Really screwed up everything.
@@ -1016,7 +1155,10 @@ LT_Token LT_GetToken()
 		}
 #endif
 		
-		ungetc(c, parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			ungetc(c, parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[--parseStrPos];
 		
 		tk.token = LT_TkNames[TOK_Identi];
 		tk.string = LT_SetGarbage(LT_ReAlloc(str, i));
@@ -1037,12 +1179,15 @@ char *LT_ReadLiteral()
 {
 	size_t i = 0;
 	size_t strBlocks = 1;
-	int c;
+	int c = 0;
 	char *str = LT_Alloc(TOKEN_STR_BLOCK_LENGTH);
 	
 	while(LT_TRUE)
 	{
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 		if(c == '\r' || c == '\n' || c == EOF) break;
 		
 		if(i >= (TOKEN_STR_BLOCK_LENGTH * strBlocks))
@@ -1060,24 +1205,44 @@ char *LT_ReadLiteral()
 
 void LT_SkipWhite()
 {
-	char c = fgetc(parseFile);
+	char c = 0;
+	if (parseMode == LT_PARSE_FILE)
+		c = fgetc(parseFile);
+	else if (parseMode == LT_PARSE_STR)
+		c = parseStr[++parseStrPos];
 	
 	while(isspace(c) && c != EOF)
 	{
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 	}
 	
-	ungetc(c, parseFile);
+	if (parseMode == LT_PARSE_FILE)
+		ungetc(c, parseFile);
+	else if (parseMode == LT_PARSE_STR)
+		c = parseStr[--parseStrPos];
 }
 
 void LT_SkipWhite2()
 {
-	char c = fgetc(parseFile);
+	char c = 0;
+	if (parseMode == LT_PARSE_FILE)
+		c = fgetc(parseFile);
+	else if (parseMode == LT_PARSE_STR)
+		c = parseStr[++parseStrPos];
 	
 	while(isspace(c) && c != EOF && c != '\r' && c != '\n')
 	{
-		c = fgetc(parseFile);
+		if (parseMode == LT_PARSE_FILE)
+			c = fgetc(parseFile);
+		else if (parseMode == LT_PARSE_STR)
+			c = parseStr[++parseStrPos];
 	}
 	
-	ungetc(c, parseFile);
+	if (parseMode == LT_PARSE_FILE)
+		ungetc(c, parseFile);
+	else if (parseMode == LT_PARSE_STR)
+		c = parseStr[--parseStrPos];
 }
