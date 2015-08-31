@@ -63,8 +63,10 @@ LT_BOOL LT_Assert(LT_BOOL assertion, const char *fmt, ...);
 LT_AssertInfo LT_CheckAssert(void);
 
 LT_BOOL LT_OpenFile(const char *filePath);
+LT_BOOL LT_OpenString(const char *str);
 void LT_SetPos(int newPos);
 void LT_CloseFile(void);
+void LT_CloseString(void);
 
 char *LT_ReadNumber(void);
 void LT_ReadString(LT_Token *tk, char term);
@@ -79,7 +81,9 @@ local pReturn
 
 function tokenizer:init(initInfo, filePath)
 	loveToken.LT_Init(initInfo)
-	loveToken.LT_OpenFile(filePath)
+	if (filePath ~= nil) then
+		loveToken.LT_OpenFile(filePath)
+	end
 end
 
 function tokenizer:assert(assertion, str)
@@ -102,8 +106,18 @@ function tokenizer:openFile(filePath)
 	return pReturn
 end
 
+function tokenizer:openString(str)
+	pReturn = loveToken.LT_OpenString(str)
+	tokenizer:checkError()
+	return pReturn
+end
+
 function tokenizer:closeFile()
 	loveToken.LT_CloseFile()
+end
+
+function tokenizer:closeString()
+	loveToken.LT_CloseString()
 end
 
 function tokenizer:quit()

@@ -64,6 +64,10 @@ THE SOFTWARE.
 #define LT_TRUE 1
 #define LT_FALSE 0
 
+#define LT_PARSE_NONE 0
+#define LT_PARSE_FILE 1
+#define LT_PARSE_STR  2
+
 enum
 {
 	TOK_Colon,  TOK_Comma,  TOK_Div,    TOK_Mod,     TOK_Mul,
@@ -146,8 +150,10 @@ LT_DLLEXPORT LT_BOOL LT_EXPORT LT_OpenFile(const char *filePath);
 #else
 LT_DLLEXPORT LT_BOOL LT_EXPORT LT_OpenFile(__str filePath);
 #endif
+LT_DLLEXPORT LT_BOOL LT_EXPORT LT_OpenString(const char *str);
 LT_DLLEXPORT void LT_EXPORT LT_SetPos(int newPos);
 LT_DLLEXPORT void LT_EXPORT LT_CloseFile(void);
+LT_DLLEXPORT void LT_EXPORT LT_CloseString(void);
 
 LT_DLLEXPORT char *LT_EXPORT LT_ReadNumber(void);
 LT_DLLEXPORT void LT_EXPORT LT_ReadString(LT_Token *tk, char term);
