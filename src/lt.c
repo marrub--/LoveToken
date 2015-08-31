@@ -488,12 +488,8 @@ LT_BOOL LT_OpenFile(__str filePath)
 	parseMode = LT_PARSE_FILE;
 	parseFile = fopen(filePath, "r");
 	
-	if(parseFile == NULL)
-	{
-		LT_Assert(LT_TRUE, "LT_OpenFile: %s", strerror(errno));
+	if (LT_Assert(parseFile == NULL, "LT_OpenFile: %s", strerror(errno)));
 		return LT_FALSE;
-	}
-	
 	return LT_TRUE;
 }
 
@@ -503,12 +499,8 @@ LT_BOOL LT_OpenString(const char *str)
 	parseStr = str;
 	parseStrPos = 0;
 	
-	if (parseStr == NULL)
-	{
-		LT_Assert(LT_TRUE, "LT_OpenString: %s", strerror(errno));
+	if (LT_Assert(parseStr == NULL, "LT_OpenString: %s", strerror(errno)))
 		return LT_FALSE;
-	}
-	
 	return LT_TRUE;
 }
 
